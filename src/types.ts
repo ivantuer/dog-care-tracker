@@ -1,8 +1,11 @@
 export type Unit = 'day' | 'week' | 'month' | 'year';
 export type Lang = 'en' | 'uk';
+export type Species = 'dog' | 'cat' | 'fish' | 'bird' | 'rabbit' | 'hamster' | 'reptile' | 'other';
 
+/** A pet. (Still called Dog in the data, so existing households keep working; no species means dog.) */
 export interface Dog {
   id: string;
+  species?: Species;
   name: string;
   emoji: string;
   color: string;
@@ -22,8 +25,10 @@ export interface Task {
   unit: Unit;
   /** Start reminding this many days before the due date. */
   lead: number;
-  /** Dogs it applies to; empty means every dog. */
+  /** Pets it applies to; empty means every pet of `species`. */
   dogIds: string[];
+  /** Kind of animal this routine is for ('any' = all); no value means dog. */
+  species?: Species | 'any';
   /** Months (1-12) in which it is active, e.g. tick season; empty means all year. */
   months: number[];
   /** First due date for a dog that has never had it, YYYY-MM-DD. Defaults to today. */

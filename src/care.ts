@@ -1,5 +1,5 @@
 // Pure scheduling logic: what is due, for which dog, and when to remind. No DOM, so it also runs in the service worker.
-import type { Dog, Log, SyncData, Task } from './types';
+import type { Dog, Log, Species, SyncData, Task } from './types';
 import { addInterval, atHour, daysBetween, localDate, nextActiveDay } from './dates';
 
 export type Status = 'overdue' | 'today' | 'soon' | 'ok';
@@ -15,7 +15,11 @@ export interface Item {
   status: Status;
 }
 
-export const appliesTo = (t: Task, dogId: string) => !t.archived && (t.dogIds.length === 0 || t.dogIds.includes(dogId));
+export const speciesOf = (d: Pick<Dog, 'species'>): Species => d.species ?? 'dog';
+
+/** A routine with chosen pets applies to those; otherwise to every pet of its kind of animal ('any' = all). */
+export const appliesTo = (t: Task, pet: Dog) =>
+  !t.archived && (t.dogIds.length ? t.dogIds.includes(pet.id) : (t.species ?? 'dog') === 'any' || (t.species ?? 'dog') === speciesOf(pet));
 
 export const lastLog = (logs: Log[], taskId: string, dogId: string): Log | undefined => {
   let best: Log | undefined;
@@ -36,7 +40,7 @@ export function itemFor(task: Task, dog: Dog, logs: Log[], today: string): Item 
 /** Every task/dog pair that applies, soonest first. */
 export function allItems(d: Pick<SyncData, 'dogs' | 'tasks' | 'logs'>, today = localDate()): Item[] {
   const out: Item[] = [];
-  for (const task of d.tasks) for (const dog of d.dogs) if (appliesTo(task, dog.id)) out.push(itemFor(task, dog, d.logs, today));
+  for (const task of d.tasks) for (const dog of d.dogs) if (appliesTo(task, dog)) out.push(itemFor(task, dog, d.logs, today));
   return out.sort((a, b) => a.due.localeCompare(b.due) || a.task.order - b.task.order || a.dog.name.localeCompare(b.dog.name));
 }
 

@@ -2,16 +2,17 @@ import { useState } from 'preact/hooks';
 import { DatePicker } from './datepicker';
 import { everyLabel, monthName, nameOf } from './format';
 import { t } from './i18n';
-import { COLORS, PRESETS, TASK_EMOJI } from './presets';
+import { COLORS, PRESETS, SPECIES, SPECIES_EMOJI, TASK_EMOJI } from './presets';
 import { nextOrder, removeTask, saveTask, state, taskFromPreset, uid } from './store';
-import type { Task, Unit } from './types';
+import { speciesOf } from './care';
+import type { Species, Task, Unit } from './types';
 import { Badge, Chip, Empty, Field, Sheet } from './ui';
 
 const UNITS: Unit[] = ['day', 'week', 'month', 'year'];
 
 type Draft = Omit<Task, 'updatedAt'>;
 
-const blank = (): Draft => ({ id: uid(), name: '', emoji: '🐾', color: COLORS[6], every: 1, unit: 'month', lead: 3, dogIds: [], months: [], order: nextOrder() });
+const blank = (species: Species | 'any' = 'dog'): Draft => ({ species, id: uid(), name: '', emoji: '🐾', color: COLORS[6], every: 1, unit: 'month', lead: 3, dogIds: [], months: [], order: nextOrder() });
 
 function dogsLabel(task: Task) {
   const { dogs } = state.value;
@@ -22,6 +23,9 @@ function dogsLabel(task: Task) {
 export function Plan() {
   const [edit, setEdit] = useState<Draft | null>(null);
   const [adding, setAdding] = useState(false);
+  const present: Species[] = [...new Set(state.value.dogs.map(speciesOf))];
+  if (!present.length) present.push('dog');
+  const mixed = present.length > 1;
   const tasks = [...state.value.tasks].sort((a, b) => Number(!!a.archived) - Number(!!b.archived) || a.order - b.order);
 
   return (
@@ -38,7 +42,7 @@ export function Plan() {
         <button key={task.id} class={`item plain-card${task.archived ? ' archived' : ''}`} onClick={() => setEdit({ ...task, name: nameOf(task) })}>
           <Badge emoji={task.emoji} color={task.color} />
           <span class="item-text">
-            <b>{nameOf(task)}</b>
+            <b>{mixed && <>{task.species === 'any' ? '🐾' : SPECIES_EMOJI[(task.species ?? 'dog') as Species][0]} </>}{nameOf(task)}</b>
             <span class="small muted">
               {everyLabel(task.every, task.unit)}
               {task.lead > 0 && ` · ${t('remindBefore', { d: String(task.lead) })}`}
@@ -53,13 +57,13 @@ export function Plan() {
       {adding && (
         <Sheet title={t('addTask')} onClose={() => setAdding(false)}>
           <div class="presets">
-            {PRESETS.map((p) => (
-              <button key={p.key} class="preset" onClick={() => { setAdding(false); setEdit(taskFromPreset(p.key, t(`preset.${p.key}`))); }}>
+            {PRESETS.filter((p) => present.some((sp) => p.species.includes(sp))).map((p) => (
+              <button key={p.key} class="preset" onClick={() => { setAdding(false); setEdit(taskFromPreset(p.key, t(`preset.${p.key}`), present.find((sp) => p.species.includes(sp))!)); }}>
                 <Badge emoji={p.emoji} color={p.color} size={40} />
                 <span><b>{t(`preset.${p.key}`)}</b><span class="small muted">{everyLabel(p.every, p.unit)}</span></span>
               </button>
             ))}
-            <button class="preset" onClick={() => { setAdding(false); setEdit(blank()); }}>
+            <button class="preset" onClick={() => { setAdding(false); setEdit(blank(present[0])); }}>
               <Badge emoji="✨" color="#8e4ec6" size={40} />
               <span><b>{t('custom')}</b><span class="small muted">{t('customHint')}</span></span>
             </button>
@@ -105,6 +109,12 @@ function TaskSheet({ draft, isNew, onClose }: { draft: Draft; isNew: boolean; on
         </Field>
       </div>
 
+      <Field label={t('speciesLabel')}>
+        <select value={d.species ?? 'dog'} onChange={(e) => set('species', (e.target as HTMLSelectElement).value as Species | 'any')}>
+          <option value="any">{t('species.any')}</option>
+          {SPECIES.map((sp) => <option key={sp} value={sp}>{t(`species.${sp}`)}</option>)}
+        </select>
+      </Field>
       {dogs.length > 1 && (
         <Field label={t('forDogs')} hint={t('forDogsHint')}>
           <div class="chips">

@@ -14,9 +14,9 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['apple-touch-icon.png', 'icon.svg'],
       manifest: {
-        name: 'Dog Care',
-        short_name: 'Dog Care',
-        description: 'Vaccines, treatments and grooming for your dog, shared in real time',
+        name: 'Pet Care',
+        short_name: 'Pet Care',
+        description: 'Vaccines, treatments and grooming for your pets, shared in real time',
         theme_color: '#14171c',
         background_color: '#14171c',
         display: 'standalone',

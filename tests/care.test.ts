@@ -50,6 +50,16 @@ describe('due dates', () => {
     expect(names).toEqual(['all:luna', 'all:rex', 'onlyRex:rex']);
   });
 
+  it('keeps routines to their kind of animal, and lets "any" cover every animal', () => {
+    const nemo = dog('nemo', { species: 'fish' });
+    const d = data({
+      dogs: [rex, nemo],
+      tasks: [task('brush'), task('water', { species: 'fish' }), task('vet', { species: 'any' }), task('mine', { species: 'cat', dogIds: ['rex'] })],
+    });
+    const names = allItems(d, '2026-10-25').map((i) => `${i.task.id}:${i.dog.id}`).sort();
+    expect(names).toEqual(['brush:rex', 'mine:rex', 'vet:nemo', 'vet:rex', 'water:nemo']);
+  });
+
   it('sorts the most urgent first', () => {
     const d = data({ dogs: [rex], tasks: [task('later', { every: 1, unit: 'year' }), task('now')], logs: [log('1', 'later', 'rex', at('2026-10-01'))] });
     expect(allItems(d, '2026-10-25').map((i) => i.task.id)).toEqual(['now', 'later']);

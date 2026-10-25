@@ -1,6 +1,6 @@
 import { effect, signal } from '@preact/signals';
 import { get, set } from 'idb-keyval';
-import type { AppState, Dog, Lang, Log, SyncData, Task } from './types';
+import type { AppState, Dog, Lang, Log, Species, SyncData, Task } from './types';
 import { PRESETS } from './presets';
 import { mergeData, prune } from './sync-core';
 import { localDate, stampFor } from './dates';
@@ -81,9 +81,9 @@ export function removeTask(id: string) {
 
 export const nextOrder = () => Math.max(-1, ...state.value.tasks.map((t) => t.order)) + 1;
 
-export function taskFromPreset(key: string, name: string, dogIds: string[] = []): Omit<Task, 'updatedAt'> {
+export function taskFromPreset(key: string, name: string, species: Species, dogIds: string[] = []): Omit<Task, 'updatedAt'> {
   const p = PRESETS.find((x) => x.key === key)!;
-  return { id: uid(), name, emoji: p.emoji, color: p.color, every: p.every, unit: p.unit, lead: p.lead, dogIds, months: p.months ?? [], order: nextOrder() };
+  return { id: uid(), name, emoji: p.emoji, color: p.color, every: p.every, unit: p.unit, lead: p.lead, species: p.any ? 'any' : species, dogIds, months: p.months ?? [], order: nextOrder() };
 }
 
 // ---- logs ------------------------------------------------------------------------------------------------

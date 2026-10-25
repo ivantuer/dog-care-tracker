@@ -1,6 +1,6 @@
-# Dog Care
+# Pet Care
 
-Local-first PWA for tracking your dog's care (vaccines, deworming, flea and tick treatment, brushing, teeth, nails, anything else) and sharing it live with a second person. Same stack as Savings Tracker: Preact + signals, IndexedDB (idb-keyval), Vite + vite-plugin-pwa, vitest, a Cloudflare Worker for sync, GitHub Pages for hosting.
+Local-first PWA for tracking your pets' care (dogs, cats, fish, birds and more: vaccines, deworming, brushing, water changes, anything that repeats) and sharing it live with a second person. Same stack as Savings Tracker: Preact + signals, IndexedDB (idb-keyval), Vite + vite-plugin-pwa, vitest, a Cloudflare Worker for sync, GitHub Pages for hosting.
 
 - **Today**: what is overdue, due today, coming up. One tap on ✓ logs it (with Undo); tap the card to backdate it, add a note, set the next date by hand, or skip.
 - **Plan**: fully customisable routines. Name, emoji, colour, repeat every N days/weeks/months/years, remind N days before, which dogs it applies to, active months (tick season), first due date, notes, pause. 11 presets including Ukrainian vet staples.

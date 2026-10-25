@@ -5,11 +5,11 @@ import { DatePicker } from './datepicker';
 import { fmtDay } from './format';
 import { t } from './i18n';
 import { buildIcs, download } from './ics';
-import { ACCENTS, COLORS, DOG_EMOJI } from './presets';
+import { ACCENTS, COLORS, presetsFor, SPECIES, SPECIES_EMOJI } from './presets';
 import { disablePush, enableLocalOnly, enablePush, isIos, pushSupported, scheduleUpload, showDigest, standalone, supported } from './push';
-import { exportJson, importJson, patchSettings, removeDog, saveDog, sharedData, state, uid } from './store';
+import { exportJson, importJson, patchSettings, removeDog, saveDog, saveTask, sharedData, state, taskFromPreset, uid } from './store';
 import { createHousehold, joinHousehold, leaveHousehold, newInviteLink, serverUrl, sync, syncNow, vault } from './sync';
-import type { Dog, Lang } from './types';
+import type { Dog, Lang, Species } from './types';
 import { Avatar, Chip, Field, Sheet, showToast } from './ui';
 
 export function Settings() {
@@ -29,7 +29,7 @@ export function Settings() {
       </div>
 
       <div class="card">
-        <div class="row between"><h2>{t('dogs')}</h2><button class="btn small-btn" onClick={() => setDog({ id: uid(), name: '', emoji: DOG_EMOJI[0], color: COLORS[s.dogs.length % COLORS.length] })}>+ {t('add')}</button></div>
+        <div class="row between"><h2>{t('dogs')}</h2><button class="btn small-btn" onClick={() => setDog({ id: uid(), name: '', emoji: SPECIES_EMOJI.dog[0], species: 'dog', color: COLORS[s.dogs.length % COLORS.length] })}>+ {t('add')}</button></div>
         {s.dogs.map((d) => (
           <button key={d.id} class="item plain-card flat" onClick={() => setDog(d)}>
             <Avatar dog={d} /><span class="item-text"><b>{d.name}</b><span class="small muted">{[d.breed, d.birthday && fmtDay(d.birthday, true)].filter(Boolean).join(' · ')}</span></span><span class="chev">›</span>
@@ -185,17 +185,35 @@ function Data() {
 function DogSheet({ draft, isNew, onClose }: { draft: Omit<Dog, 'updatedAt'>; isNew: boolean; onClose: () => void }) {
   const [d, setD] = useState(draft);
   const set = <K extends keyof typeof d>(k: K, v: (typeof d)[K]) => setD((x) => ({ ...x, [k]: v }));
+  const sp: Species = d.species ?? 'dog';
+  // A new kind of animal starts with its standard routines unless something already covers it.
+  const covered = state.value.tasks.some((x) => !x.archived && (x.species ?? 'dog') === sp && !x.dogIds.length);
+  const [seed, setSeed] = useState<boolean | null>(null);
+  const seeding = isNew && (seed ?? !covered);
+  const chooseSpecies = (s: Species) => { setD((x) => ({ ...x, species: s, emoji: SPECIES_EMOJI[s][0] })); setSeed(null); };
+  const save = () => {
+    saveDog({ ...d, species: sp, name: d.name.trim() });
+    if (seeding) for (const p of presetsFor(sp)) if (p.common.includes(sp)) saveTask(taskFromPreset(p.key, t(`preset.${p.key}`), sp));
+    onClose();
+  };
   return (
     <Sheet title={isNew ? t('addDog') : t('editDog')} onClose={onClose}>
       <div class="row gap"><Avatar dog={d} size={52} /><Field label={t('dogName')}><input type="text" value={d.name} onInput={(e) => set('name', (e.target as HTMLInputElement).value)} /></Field></div>
-      <div class="chips">{DOG_EMOJI.map((e) => <Chip key={e} on={d.emoji === e} onClick={() => set('emoji', e)}>{e}</Chip>)}</div>
+      {isNew && <div class="chips">{SPECIES.map((s) => <Chip key={s} on={sp === s} onClick={() => chooseSpecies(s)}>{SPECIES_EMOJI[s][0]} {t(`species.${s}`)}</Chip>)}</div>}
+      <div class="chips">{SPECIES_EMOJI[sp].map((e) => <Chip key={e} on={d.emoji === e} onClick={() => set('emoji', e)}>{e}</Chip>)}</div>
+      {isNew && (
+        <div class="row between">
+          <span class="small">{t('seedRoutines')}</span>
+          <label class="switch"><input type="checkbox" checked={seeding} onChange={(e) => setSeed((e.target as HTMLInputElement).checked)} /><span /></label>
+        </div>
+      )}
       <div class="swatches">{COLORS.map((c) => <button key={c} class={`sw${d.color === c ? ' on' : ''}`} style={{ background: c }} aria-label={c} onClick={() => set('color', c)} />)}</div>
       <div class="grid2">
         <Field label={t('breed')}><input type="text" value={d.breed ?? ''} onInput={(e) => set('breed', (e.target as HTMLInputElement).value || undefined)} /></Field>
         <Field label={t('birthday')}><DatePicker value={d.birthday ?? ''} max={localDate()} clearable onChange={(v) => set('birthday', v || undefined)} /></Field>
       </div>
       <div class="row gap">
-        <button class="btn primary grow" disabled={!d.name.trim()} onClick={() => { saveDog({ ...d, name: d.name.trim() }); onClose(); }}>{t('save')}</button>
+        <button class="btn primary grow" disabled={!d.name.trim()} onClick={save}>{t('save')}</button>
         {!isNew && <button class="btn danger" onClick={() => confirm(t('deleteDogConfirm', { name: d.name })) && (removeDog(d.id), onClose())}>{t('delete')}</button>}
       </div>
     </Sheet>
