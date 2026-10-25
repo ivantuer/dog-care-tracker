@@ -1,5 +1,5 @@
 import { useState } from 'preact/hooks';
-import { everyLabel, monthName } from './format';
+import { everyLabel, monthName, nameOf } from './format';
 import { t } from './i18n';
 import { COLORS, PRESETS, TASK_EMOJI } from './presets';
 import { nextOrder, removeTask, saveTask, state, taskFromPreset, uid } from './store';
@@ -37,7 +37,7 @@ export function Plan() {
         <button key={task.id} class={`item plain-card${task.archived ? ' archived' : ''}`} onClick={() => setEdit(task)}>
           <Badge emoji={task.emoji} color={task.color} />
           <span class="item-text">
-            <b>{task.name}</b>
+            <b>{nameOf(task)}</b>
             <span class="small muted">
               {everyLabel(task.every, task.unit)}
               {task.lead > 0 && ` · ${t('remindBefore', { d: String(task.lead) })}`}

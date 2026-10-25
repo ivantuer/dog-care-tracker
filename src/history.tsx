@@ -1,6 +1,6 @@
 import { useState } from 'preact/hooks';
 import { localDate } from './dates';
-import { fmtLongDay, timeOf } from './format';
+import { fmtLongDay, nameOf, timeOf } from './format';
 import { t } from './i18n';
 import { removeLog, saveLog, state } from './store';
 import { stampFor } from './dates';
@@ -39,7 +39,7 @@ export function History() {
               <button key={l.id} class={`item plain-card${l.skipped ? ' archived' : ''}`} onClick={() => setEdit(l)}>
                 <Badge emoji={task.emoji} color={task.color} size={40} />
                 <span class="item-text">
-                  <b>{task.name}{l.skipped ? ` · ${t('skipped')}` : ''}</b>
+                  <b>{nameOf(task)}{l.skipped ? ` · ${t('skipped')}` : ''}</b>
                   <span class="small muted">{s.dogs.length > 1 ? `${dog.emoji} ${dog.name} · ` : ''}{l.by} · {timeOf(l.at)}{l.note ? ` · ${l.note}` : ''}</span>
                 </span>
               </button>
@@ -67,7 +67,7 @@ function LogSheet({ log, onClose }: { log: Log; onClose: () => void }) {
   };
 
   return (
-    <Sheet title={task?.name ?? ''} onClose={onClose}>
+    <Sheet title={task ? nameOf(task) : ''} onClose={onClose}>
       <div class="grid2">
         <Field label={t('doneOn')}><input type="date" value={day} max={today} onInput={(e) => setDay((e.target as HTMLInputElement).value || day)} /></Field>
         <Field label={t('doneBy')}><input type="text" value={by} onInput={(e) => setBy((e.target as HTMLInputElement).value)} /></Field>

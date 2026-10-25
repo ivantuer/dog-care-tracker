@@ -1,7 +1,7 @@
 import { useState } from 'preact/hooks';
 import { allItems, type Item, type Status } from './care';
 import { localDate } from './dates';
-import { agoText, dueText, everyLabel, fmtDay, fmtLongDay } from './format';
+import { nameOf, agoText, dueText, everyLabel, fmtDay, fmtLongDay } from './format';
 import { t } from './i18n';
 import { logCare, patchSettings, removeLog, state } from './store';
 import { sync, vault } from './sync';
@@ -29,7 +29,7 @@ export function SyncDot() {
 
 function done(i: Item) {
   const id = logCare({ taskId: i.task.id, dogId: i.dog.id });
-  showToast(`${i.task.emoji} ${i.task.name} · ${i.dog.name}`, () => removeLog(id));
+  showToast(`${i.task.emoji} ${nameOf(i.task)} · ${i.dog.name}`, () => removeLog(id));
 }
 
 function Card({ i, showDog, onOpen }: { i: Item; showDog: boolean; onOpen: () => void }) {
@@ -39,7 +39,7 @@ function Card({ i, showDog, onOpen }: { i: Item; showDog: boolean; onOpen: () =>
       <button class="item-main" onClick={onOpen}>
         <Badge emoji={i.task.emoji} color={i.task.color} />
         <span class="item-text">
-          <b>{i.task.name}</b>
+          <b>{nameOf(i.task)}</b>
           <span class="small due">{showDog && <>{i.dog.emoji} {i.dog.name} · </>}{dueText(i.days)}{i.status === 'ok' && <> · {fmtDay(i.due)}</>}</span>
           <span class="small muted">{sub}</span>
         </span>
@@ -104,12 +104,12 @@ function ItemSheet({ i, onClose }: { i: Item; onClose: () => void }) {
 
   const submit = (skipped: boolean) => {
     const id = logCare({ taskId: i.task.id, dogId: i.dog.id, day: skipped ? today : day, note: note.trim(), nextDue: next || undefined, skipped });
-    showToast(`${skipped ? t('skipped') : '✓'} ${i.task.emoji} ${i.task.name} · ${i.dog.name}`, () => removeLog(id));
+    showToast(`${skipped ? t('skipped') : '✓'} ${i.task.emoji} ${nameOf(i.task)} · ${i.dog.name}`, () => removeLog(id));
     onClose();
   };
 
   return (
-    <Sheet title={`${i.task.name} · ${i.dog.name}`} onClose={onClose}>
+    <Sheet title={`${nameOf(i.task)} · ${i.dog.name}`} onClose={onClose}>
       <div class="row gap">
         <Badge emoji={i.task.emoji} color={i.task.color} size={52} />
         <div>

@@ -1,6 +1,6 @@
 import { daysBetween, localDate, parseDay } from './dates';
 import { dueWords } from './digest';
-import { lang, pluralize, t } from './i18n';
+import { lang, pluralize, t, taskName } from './i18n';
 import type { Task, Unit } from './types';
 
 const locale = () => (lang.value === 'uk' ? 'uk-UA' : 'en-GB');
@@ -27,3 +27,5 @@ export function agoText(iso: string, today = localDate()) {
 export const taskSummary = (task: Pick<Task, 'every' | 'unit' | 'lead'>) => everyLabel(task.every, task.unit);
 
 export const timeOf = (iso: string) => new Date(iso).toLocaleTimeString(locale(), { hour: '2-digit', minute: '2-digit' });
+
+export const nameOf = (task: Pick<Task, 'name'>) => taskName(lang.value, task.name);

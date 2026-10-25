@@ -31,7 +31,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
 button { cursor: pointer; }
 .muted { color: var(--muted); } .small { font-size: 13px; } .error { color: var(--bad); }
 .row { display: flex; align-items: center; gap: 10px; } .between { justify-content: space-between; } .gap { gap: 10px; } .wrap { flex-wrap: wrap; } .grow { flex: 1; }
-.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; } @media (max-width: 380px) { .grid2 { grid-template-columns: 1fr; } }
+.grid2 { display: grid; align-items: start; grid-template-columns: 1fr 1fr; gap: 12px; } @media (max-width: 380px) { .grid2 { grid-template-columns: 1fr; } }
 ul.plain { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
 
 /* shell */
@@ -94,7 +94,7 @@ ul.plain { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
 .sw.on { border-color: var(--page); outline-color: var(--ink); }
 
 /* forms */
-.field { display: grid; gap: 6px; margin-bottom: 12px; min-width: 0; } .card .field, .sheet .grid2 .field { margin-bottom: 0; }
+.field { display: grid; align-content: start; gap: 6px; margin-bottom: 12px; min-width: 0; } .card .field, .sheet .grid2 .field { margin-bottom: 0; }
 .label { font-size: 13px; font-weight: 600; color: var(--ink-2); } .hint { font-size: 12px; color: var(--muted); }
 input[type=text], input[type=url], input[type=number], input[type=date], select, textarea { width: 100%; min-width: 0; background: var(--field); border: 1px solid var(--ring); border-radius: 12px; padding: 11px 12px; outline: none; -webkit-appearance: none; appearance: none; }
 input:focus, select:focus, textarea:focus { border-color: var(--accent); }

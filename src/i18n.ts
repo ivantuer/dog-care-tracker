@@ -118,6 +118,14 @@ export function translate(l: Lang, key: string, params?: Record<string, string>)
 
 export const t = (key: string, params?: Record<string, string>) => translate(lang.value, key, params);
 
+/** A routine still carrying a preset's stock name is shown in the current language; renamed ones are left alone. */
+export function taskName(l: Lang, name: string): string {
+  for (const k of Object.keys(en)) {
+    if (k.startsWith('preset.') && (name === en[k] || name === uk[k])) return DICTS[l][k];
+  }
+  return name;
+}
+
 /** "3 days" / "3 дні": picks the plural form of `key` for this language and number. */
 export function pluralize(l: Lang, key: string, n: number): string {
   const form = new Intl.PluralRules(l === 'uk' ? 'uk' : 'en').select(n);

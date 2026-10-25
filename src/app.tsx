@@ -1,7 +1,7 @@
 import { effect } from '@preact/signals';
 import { useEffect, useState } from 'preact/hooks';
 import { History } from './history';
-import { lang, t } from './i18n';
+import { lang, t, taskName } from './i18n';
 import { Onboard } from './onboard';
 import { Plan } from './plan';
 import { Settings } from './settings';
@@ -42,7 +42,7 @@ export function App() {
       const l = logs[0];
       const task = tasks.find((x) => x.id === l.taskId);
       const dog = dogs.find((x) => x.id === l.dogId);
-      if (task && dog) showToast(`${l.by}: ${task.emoji} ${task.name} · ${dog.name}${logs.length > 1 ? ` +${logs.length - 1}` : ''}`);
+      if (task && dog) showToast(`${l.by}: ${task.emoji} ${taskName(lang.value, task.name)} · ${dog.name}${logs.length > 1 ? ` +${logs.length - 1}` : ''}`);
     };
   }, []);
 

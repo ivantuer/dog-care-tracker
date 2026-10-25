@@ -1,6 +1,6 @@
 // Text of a reminder. Pure, so the page and the service worker (which wakes up for a push) produce the same wording.
 import { allItems, type Item } from './care';
-import { pluralize, translate } from './i18n';
+import { pluralize, taskName, translate } from './i18n';
 import type { Lang, SyncData } from './types';
 
 export const dueWords = (lang: Lang, days: number) =>
@@ -13,7 +13,7 @@ export function digest(d: Pick<SyncData, 'dogs' | 'tasks' | 'logs'>, lang: Lang,
   const items = allItems(d, today).filter((i) => i.status !== 'ok');
   if (!items.length) return null;
   const many = d.dogs.length > 1;
-  const line = (i: Item) => `${i.task.emoji} ${many ? `${i.dog.name}: ` : ''}${i.task.name} (${dueWords(lang, i.days)})`;
+  const line = (i: Item) => `${i.task.emoji} ${many ? `${i.dog.name}: ` : ''}${taskName(lang, i.task.name)} (${dueWords(lang, i.days)})`;
   const shown = items.slice(0, 4).map(line);
   if (items.length > 4) shown.push(translate(lang, 'digest.more', { n: String(items.length - 4) }));
   return { title: translate(lang, 'digest.title', { n: String(items.length) }), body: shown.join('\n'), items };
