@@ -8,6 +8,8 @@
  *   GET    /v/:id/ws                Sec-WebSocket-Protocol: bearer.<token>   -> pushes { rev } after every PUT
  *   POST   /v/:id/push              { sub, times }                     register a phone and the moments to wake it
  *   DELETE /v/:id/push              { endpoint }                       unregister
+ *   POST   /v/:id/invite            { code, iv, ct }                   store a sealed single-use invite (7 days)
+ *   GET    /v/:id/invite/:code      no auth                            -> { iv, ct } once, then 404
  */
 import { DurableObject } from 'cloudflare:workers';
 import { sendPush, type PushSub } from './vapid';
@@ -22,6 +24,8 @@ export interface Env {
 
 const MAX_BODY = 1_000_000;
 const MAX_SUBS = 8;
+const MAX_INVITES = 5;
+const INVITE_TTL = 7 * 86_400_000;
 const MAX_TIMES = 64;
 const te = new TextEncoder();
 
@@ -52,6 +56,7 @@ const cors = (req: Request, env: Env): Record<string, string> => {
 
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
 
+interface Invite { iv: string; ct: string; exp: number }
 interface SubRec { sub: PushSub; times: number[]; fails: number }
 
 // ---- one household ---------------------------------------------------------------------------------------
@@ -68,6 +73,18 @@ export class Vault extends DurableObject<Env> {
   async fetch(req: Request): Promise<Response> {
     const url = new URL(req.url);
     const auth = req.headers.get('X-Auth') ?? '';
+
+    // Redeeming an invite needs no token (the code is the secret) and works exactly once.
+    const redeem = url.pathname.match(/\/invite\/([0-9a-f]{32})$/);
+    if (redeem && req.method === 'GET') {
+      const invites = (await this.ctx.storage.get<Record<string, Invite>>('invites')) ?? {};
+      const inv = invites[redeem[1]];
+      if (!inv || inv.exp < Date.now()) return json({ error: 'used' }, 404);
+      delete invites[redeem[1]];
+      await this.ctx.storage.put('invites', invites);
+      return json({ iv: inv.iv, ct: inv.ct });
+    }
+
     const rec = await this.ctx.storage.get<Rec>('vault');
     if (rec && !same(rec.auth, auth)) return json({ error: 'not authorized for this vault' }, 401);
 
@@ -81,6 +98,7 @@ export class Vault extends DurableObject<Env> {
     }
 
     if (url.pathname.endsWith('/push')) return this.push(req, rec);
+    if (url.pathname.endsWith('/invite') && req.method === 'POST') return this.invite(req, rec);
 
     if (req.method === 'GET') {
       if (!rec) return json({ error: 'empty' }, 404);
@@ -104,6 +122,20 @@ export class Vault extends DurableObject<Env> {
     }
 
     return json({ error: 'method not allowed' }, 405);
+  }
+
+  /** Keeps a sealed copy of the household credentials for one person to collect. The key to open it is never sent here. */
+  private async invite(req: Request, rec: Rec | undefined): Promise<Response> {
+    if (!rec) return json({ error: 'empty' }, 404);
+    let body: { code?: unknown; iv?: unknown; ct?: unknown };
+    try { body = JSON.parse(await req.text()); } catch { return json({ error: 'bad json' }, 400); }
+    if (typeof body.code !== 'string' || !/^[0-9a-f]{32}$/.test(body.code) || typeof body.iv !== 'string' || typeof body.ct !== 'string' || body.ct.length > 2000) return json({ error: 'bad body' }, 400);
+    const now = Date.now();
+    const invites = Object.fromEntries(Object.entries((await this.ctx.storage.get<Record<string, Invite>>('invites')) ?? {}).filter(([, v]) => v.exp > now));
+    if (Object.keys(invites).length >= MAX_INVITES) return json({ error: 'too many open invites' }, 403);
+    invites[body.code] = { iv: body.iv, ct: body.ct, exp: now + INVITE_TTL };
+    await this.ctx.storage.put('invites', invites);
+    return json({ ok: true });
   }
 
   private async push(req: Request, rec: Rec | undefined): Promise<Response> {
@@ -175,14 +207,15 @@ export default {
 
     if (url.pathname === '/config') return reply(json({ vapid: env.VAPID_PUBLIC || null }));
 
-    const m = url.pathname.match(/^\/v\/([0-9a-f]{32})(\/ws|\/push)?$/);
+    const m = url.pathname.match(/^\/v\/([0-9a-f]{32})(\/ws|\/push|\/invite|\/invite\/[0-9a-f]{32})?$/);
     if (!m) return reply(json({ error: 'not found' }, 404));
     const proto = (req.headers.get('Sec-WebSocket-Protocol') ?? '').split(',').map((x) => x.trim()).find((x) => x.startsWith('bearer.'));
     const token = proto ? proto.slice(7) : (req.headers.get('Authorization') ?? '').replace(/^Bearer /, '');
-    if (!/^[0-9a-f]{64}$/.test(token)) return reply(json({ error: 'bad auth' }, 401));
+    const redeeming = req.method === 'GET' && /\/invite\/[0-9a-f]{32}$/.test(url.pathname);
+    if (!redeeming && !/^[0-9a-f]{64}$/.test(token)) return reply(json({ error: 'bad auth' }, 401));
 
     const forward = new Request(req);
-    forward.headers.set('X-Auth', await sha256(token));
+    forward.headers.set('X-Auth', redeeming ? '' : await sha256(token));
     return reply(await env.VAULT.get(env.VAULT.idFromName(m[1])).fetch(forward));
   },
 };

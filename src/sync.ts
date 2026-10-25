@@ -2,7 +2,7 @@ import { signal } from '@preact/signals';
 import { del, get, set } from 'idb-keyval';
 import { DEFAULT_SERVER } from './config';
 import { applySynced, hooks, sharedData, state } from './store';
-import { canon, decodeInvite, encodeInvite, liveProtocols, liveUrl, mergeData, newVault, syncOnce, SyncAuthError, type Vault } from './sync-core';
+import { canon, createInvite, liveProtocols, liveUrl, mergeData, newVault, redeemInvite, syncOnce, SyncAuthError, type Vault } from './sync-core';
 import type { Log } from './types';
 
 const VAULT_KEY = 'dog-care-vault';
@@ -119,14 +119,18 @@ export async function createHousehold() {
 }
 
 export async function joinHousehold(text: string) {
-  await setVault(decodeInvite(text));
+  await setVault(await redeemInvite(text));
   await syncNow();
   if (sync.value.error) { const msg = sync.value.error; await setVault(null); patch({ error: '' }); throw new Error(msg); }
 }
 
 export const leaveHousehold = () => setVault(null);
 
-export const inviteLink = () => (vault.value ? `${location.origin}${location.pathname}#join=${encodeInvite(vault.value)}` : '');
+/** A fresh single-use invite link for the other person. */
+export async function newInviteLink(): Promise<string> {
+  if (!vault.value) throw new Error('household');
+  return `${location.origin}${location.pathname}#join=${await createInvite(vault.value)}`;
+}
 
 export function startSync() {
   const hash = location.hash;

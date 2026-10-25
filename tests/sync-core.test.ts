@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { canon, decodeInvite, decrypt, encodeInvite, encrypt, mergeData, newVault } from '../src/sync-core';
+import { canon, decrypt, encrypt, mergeData, newVault, parseInvite } from '../src/sync-core';
 import { data, dog, log, task } from './helpers';
 
 const T = (n: number) => `2026-10-2${n}T10:00:00.000Z`;
@@ -44,12 +44,8 @@ describe('encryption and invites', () => {
     await expect(decrypt(newVault('https://x.example'), iv, blob)).rejects.toThrow();
   });
 
-  it('turns a vault into an invite and back', () => {
-    const v = newVault('https://dogcare-sync.me.workers.dev/');
-    const code = encodeInvite(v);
-    expect(code).toMatch(/^[A-Za-z0-9_-]+$/);
-    expect(decodeInvite(`https://me.github.io/dog/#join=${code}`)).toEqual({ ...v, url: 'https://dogcare-sync.me.workers.dev' });
-    expect(decodeInvite(code).bearer).toBe(v.bearer);
-    expect(() => decodeInvite('https://me.github.io/dog/#join=garbage')).toThrow('invite');
+  it('rejects garbage as an invite', () => {
+    expect(() => parseInvite('https://me.github.io/dog/#join=garbage')).toThrow('invite');
+    expect(() => parseInvite('')).toThrow('invite');
   });
 });

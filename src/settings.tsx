@@ -8,7 +8,7 @@ import { buildIcs, download } from './ics';
 import { ACCENTS, COLORS, DOG_EMOJI } from './presets';
 import { disablePush, enableLocalOnly, enablePush, isIos, pushSupported, scheduleUpload, showDigest, standalone, supported } from './push';
 import { exportJson, importJson, patchSettings, removeDog, saveDog, sharedData, state, uid } from './store';
-import { createHousehold, inviteLink, joinHousehold, leaveHousehold, serverUrl, sync, syncNow, vault } from './sync';
+import { createHousehold, joinHousehold, leaveHousehold, newInviteLink, serverUrl, sync, syncNow, vault } from './sync';
 import type { Dog, Lang } from './types';
 import { Avatar, Chip, Field, Sheet, showToast } from './ui';
 
@@ -75,20 +75,12 @@ function Household() {
     setBusy(true); setErr('');
     try { await fn(); } catch (e) {
       const m = (e as Error).message;
-      setErr(m === 'server' ? t('noServerHint') : m === 'invite' ? t('err.invite') : `${t('err.sync')} (${m})`);
+      setErr(m === 'server' ? t('noServerHint') : m === 'invite' ? t('err.invite') : m === 'used' ? t('err.used') : `${t('err.sync')} (${m})`);
     } finally { setBusy(false); }
   };
 
-  const share = async () => {
-    const url = inviteLink();
-    try {
-      if (navigator.share) await navigator.share({ title: t('app'), text: t('inviteMessage'), url });
-      else { await navigator.clipboard.writeText(url); showToast(t('copied')); }
-    } catch (e) {
-      if ((e as Error).name === 'AbortError') return;
-      try { await navigator.clipboard.writeText(url); showToast(t('copied')); } catch { prompt(t('inviteLink'), url); }
-    }
-  };
+  const [invite, setInvite] = useState('');
+  const invitePartner = () => void run(async () => setInvite(await newInviteLink()));
 
   return (
     <div class="card">
@@ -102,7 +94,7 @@ function Household() {
           {st.error === 'auth' && <p class="error small">{t('err.auth')}</p>}
           <p class="muted small">{t('householdOn')}</p>
           <div class="row gap wrap">
-            <button class="btn primary" onClick={share}>{t('invitePartner')}</button>
+            <button class="btn primary" disabled={busy} onClick={invitePartner}>{t('invitePartner')}</button>
             <button class="btn" disabled={st.busy} onClick={() => void syncNow()}>{t('syncNow')}</button>
             <button class="btn danger" onClick={() => confirm(t('leaveConfirm')) && void leaveHousehold()}>{t('leave')}</button>
           </div>
@@ -119,6 +111,7 @@ function Household() {
         </>
       )}
       {err && <p class="error small">{err}</p>}
+      {invite && <InviteSheet link={invite} onClose={() => setInvite('')} />}
     </div>
   );
 }
@@ -204,6 +197,26 @@ function DogSheet({ draft, isNew, onClose }: { draft: Omit<Dog, 'updatedAt'>; is
       <div class="row gap">
         <button class="btn primary grow" disabled={!d.name.trim()} onClick={() => { saveDog({ ...d, name: d.name.trim() }); onClose(); }}>{t('save')}</button>
         {!isNew && <button class="btn danger" onClick={() => confirm(t('deleteDogConfirm', { name: d.name })) && (removeDog(d.id), onClose())}>{t('delete')}</button>}
+      </div>
+    </Sheet>
+  );
+}
+
+const mobile = () => /Mobi|iPhone|iPad|Android/i.test(navigator.userAgent);
+
+/** The one-time link, ready to copy. The system share sheet is offered only on phones, where it reaches Messages and mail apps. */
+function InviteSheet({ link, onClose }: { link: string; onClose: () => void }) {
+  const copy = async () => {
+    try { await navigator.clipboard.writeText(link); showToast(t('copied')); } catch { prompt(t('inviteLink'), link); }
+  };
+  const share = () => void navigator.share({ title: t('app'), text: t('inviteMessage'), url: link }).catch(() => {});
+  return (
+    <Sheet title={t('invitePartner')} onClose={onClose}>
+      <p class="muted small">{t('inviteOnce')}</p>
+      <input type="text" readOnly value={link} onFocus={(e) => (e.target as HTMLInputElement).select()} />
+      <div class="row gap">
+        <button class="btn primary grow" onClick={copy}>{t('copyLink')}</button>
+        {mobile() && 'share' in navigator && <button class="btn" onClick={share}>{t('shareLink')}</button>}
       </div>
     </Sheet>
   );

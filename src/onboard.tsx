@@ -33,7 +33,8 @@ export function Onboard({ done }: { done: () => void }) {
       pendingInvite.value = '';
       done();
     } catch (e) {
-      setErr((e as Error).message === 'invite' ? t('err.invite') : t('err.sync'));
+      const m = (e as Error).message;
+      setErr(m === 'invite' ? t('err.invite') : m === 'used' ? t('err.used') : t('err.sync'));
     } finally { setBusy(false); }
   };
 

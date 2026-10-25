@@ -28,20 +28,6 @@ export function newVault(url: string): Vault {
   return { url: base(url), path: `/v/${hex(r(16))}`, bearer: hex(r(32)), key: b64(r(32)) };
 }
 
-/** The part after `#join=` in an invite link. It holds the secret, so it never leaves the fragment. */
-export const encodeInvite = (v: Vault) => b64url(JSON.stringify({ u: v.url, p: v.path, b: v.bearer, k: v.key }));
-
-export function decodeInvite(text: string): Vault {
-  const code = text.includes('join=') ? text.slice(text.indexOf('join=') + 5).split(/[&\s]/)[0] : text.trim();
-  try {
-    const j = JSON.parse(unb64url(code)) as { u: string; p: string; b: string; k: string };
-    if (!/^https?:\/\//.test(j.u) || !/^\/v\/[0-9a-f]{32}$/.test(j.p) || !/^[0-9a-f]{64}$/.test(j.b) || !j.k) throw new Error();
-    return { url: base(j.u), path: j.p, bearer: j.b, key: j.k };
-  } catch {
-    throw new Error('invite');
-  }
-}
-
 const aes = (raw: string) => crypto.subtle.importKey('raw', unb64(raw), 'AES-GCM', false, ['encrypt', 'decrypt']);
 
 export async function encrypt(v: Vault, data: SyncData): Promise<{ iv: string; blob: string }> {
@@ -100,6 +86,53 @@ export function mergeData(a: SyncData, b: SyncData): SyncData {
 export function canon(d: SyncData): string {
   const sortBy = <T extends { id: string }>(xs: T[]) => [...xs].sort((p, q) => p.id.localeCompare(q.id));
   return JSON.stringify({ d: sortBy(d.dogs), t: sortBy(d.tasks), l: sortBy(d.logs), x: Object.entries(d.tombstones).sort() });
+}
+
+// ---- invites ---------------------------------------------------------------------------------------------
+// An invite link works once. The household credentials are sealed under a random key that lives only in the link's #
+// part; the server holds the sealed copy and hands it out to the first person who asks, then forgets it.
+
+interface InviteParts { u: string; p: string; c: string; w: string }
+
+/** Seals the credentials, stores them on the server, and returns the code to put after `#join=`. */
+export async function createInvite(v: Vault): Promise<string> {
+  const r = (n: number) => crypto.getRandomValues(new Uint8Array(n));
+  const code = hex(r(16));
+  const wrap = b64(r(32));
+  const iv = r(12);
+  const ct = new Uint8Array(await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, await aes(wrap), te.encode(JSON.stringify({ b: v.bearer, k: v.key }))));
+  const res = await fetch(`${v.url}${v.path}/invite`, { method: 'POST', headers: headers(v), body: JSON.stringify({ code, iv: b64(iv), ct: b64(ct) }) });
+  if (res.status === 401) throw denied();
+  if (res.status === 403) throw new Error('too many open invites');
+  if (!res.ok) throw new Error(`Sync server error ${res.status}`);
+  return b64url(JSON.stringify({ u: v.url, p: v.path, c: code, w: wrap } satisfies InviteParts));
+}
+
+export function parseInvite(text: string): InviteParts {
+  const code = text.includes('join=') ? text.slice(text.indexOf('join=') + 5).split(/[&\s]/)[0] : text.trim();
+  try {
+    const j = JSON.parse(unb64url(code)) as InviteParts;
+    if (!/^https?:\/\//.test(j.u) || !/^\/v\/[0-9a-f]{32}$/.test(j.p) || !/^[0-9a-f]{32}$/.test(j.c) || !j.w) throw new Error();
+    return { ...j, u: base(j.u) };
+  } catch {
+    throw new Error('invite');
+  }
+}
+
+/** Collects the credentials. Throws 'used' if the link was already opened or has expired. */
+export async function redeemInvite(text: string): Promise<Vault> {
+  const j = parseInvite(text);
+  const res = await fetch(`${j.u}${j.p}/invite/${j.c}`);
+  if (res.status === 404) throw new Error('used');
+  if (!res.ok) throw new Error(`Sync server error ${res.status}`);
+  const { iv, ct } = (await res.json()) as { iv: string; ct: string };
+  try {
+    const pt = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: unb64(iv) }, await aes(j.w), unb64(ct));
+    const s = JSON.parse(td.decode(pt)) as { b: string; k: string };
+    return { url: j.u, path: j.p, bearer: s.b, key: s.k };
+  } catch {
+    throw new Error('invite');
+  }
 }
 
 // ---- network ---------------------------------------------------------------------------------------------

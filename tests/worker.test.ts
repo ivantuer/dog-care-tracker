@@ -1,7 +1,7 @@
 // Two phones against a running sync server: `cd worker && npx wrangler dev --local`, then
 // SYNC_URL=http://localhost:8787 npm test
 import { describe, expect, it } from 'vitest';
-import { liveProtocols, liveUrl, mergeData, newVault, pull, push, syncOnce } from '../src/sync-core';
+import { createInvite, liveProtocols, liveUrl, mergeData, newVault, pull, push, redeemInvite, syncOnce } from '../src/sync-core';
 import { data, dog, log, task } from './helpers';
 
 const URL_ = process.env.SYNC_URL;
@@ -39,6 +39,13 @@ d('sync server', () => {
     expect(b!.data.logs.map((l) => l.id).sort()).toEqual(['l1', 'l2']);
     expect(mergeData(b!.data, rex).logs).toHaveLength(2);
     ws.close();
+
+    // An invite works exactly once and hands over working credentials.
+    const code = await createInvite(vault);
+    const joined = await redeemInvite(`https://x.example/#join=${code}`);
+    expect(joined).toMatchObject({ path: vault.path, bearer: vault.bearer, key: vault.key });
+    expect((await pull(joined))!.data.logs).toHaveLength(2);
+    await expect(redeemInvite(code)).rejects.toThrow('used');
 
     const bad = new WebSocket(liveUrl(vault), liveProtocols(stranger));
     const closed = await new Promise<boolean>((res) => { bad.onopen = () => res(false); bad.onerror = () => res(true); bad.onclose = () => res(true); });

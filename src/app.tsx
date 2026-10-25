@@ -82,7 +82,7 @@ function InviteSheet() {
   const me = state.value.settings.me;
   const join = async () => {
     setBusy(true);
-    try { await joinHousehold(pendingInvite.value); pendingInvite.value = ''; } catch { setErr(t('err.sync')); } finally { setBusy(false); }
+    try { await joinHousehold(pendingInvite.value); pendingInvite.value = ''; } catch (e) { setErr((e as Error).message === 'used' ? t('err.used') : t('err.sync')); } finally { setBusy(false); }
   };
   return (
     <Sheet title={t('invited')} onClose={() => (pendingInvite.value = '')}>
