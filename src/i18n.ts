@@ -5,6 +5,7 @@ import type { Lang } from './types';
 type Dict = Record<string, string>;
 
 const en: Dict = {
+  googleFirst: 'Easiest: continue with Google. It opens your household, or creates one from this device\'s data and links your account in one step.', googleCreateConfirm: 'No household is linked to this Google account yet. Create one from this device\'s data and link the account?', linkGoogleNow: 'Household created. Now turn on Google sign-in below.',
   googleTitle: 'Sign in with Google', googleExplain: 'Reopen this household on any phone with your Google account, no invite needed. Trade-off: the server then keeps the household key sealed, so it could technically read the data. Invite-only is more private.',
   googleOn: 'Google sign-in is on for {email}.', googleOff: 'Turn off Google sign-in', googleConfirmOff: 'Confirm with Google to turn it off.',
   or: 'or', haveOther: 'Already use Pet Care on another device?', 'err.nolink': 'No household is linked to that Google account yet. On the device that has your data, open Settings and turn on Google sign-in.', 'err.google': 'Google sign-in could not load. Check your connection.',
@@ -65,6 +66,7 @@ const en: Dict = {
 };
 
 const uk: Dict = {
+  googleFirst: 'Найпростіше: продовжити з Google. Це відкриє ваш спільний доступ або створить його з даних цього пристрою і привʼяже акаунт за один крок.', googleCreateConfirm: 'До цього акаунта Google ще не привʼязано спільного доступу. Створити його з даних цього пристрою і привʼязати акаунт?', linkGoogleNow: 'Спільний доступ створено. Тепер увімкніть вхід через Google нижче.',
   googleTitle: 'Вхід через Google', googleExplain: 'Відкривайте цей спільний доступ на будь-якому телефоні зі своїм акаунтом Google, без запрошення. Компроміс: сервер тоді зберігає ключ у запечатаному вигляді, тож технічно міг би читати дані. Лише за запрошенням приватніше.',
   googleOn: 'Вхід через Google увімкнено для {email}.', googleOff: 'Вимкнути вхід через Google', googleConfirmOff: 'Підтвердьте через Google, щоб вимкнути.',
   or: 'або', haveOther: 'Уже користуєтесь Pet Care на іншому пристрої?', 'err.nolink': 'До цього акаунта Google ще не привʼязано спільного доступу. На пристрої з вашими даними відкрийте Налаштування й увімкніть вхід через Google.', 'err.google': 'Не вдалося завантажити вхід через Google. Перевірте зʼєднання.',

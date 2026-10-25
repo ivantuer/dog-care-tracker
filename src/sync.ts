@@ -126,15 +126,26 @@ export async function joinHousehold(text: string) {
 
 export const leaveHousehold = () => { patchSettings({ googleEmail: '' }); return setVault(null); };
 
-/** Continue with Google on a new device: opens the household this account was linked to. */
-export async function connectGoogle(idToken: string) {
+/**
+ * Continue with Google. Opens the household this account is linked to. If there is none and `confirmCreate` agrees, creates
+ * one from this device's data and links the account right away, so every other device can sign in with Google.
+ */
+export async function connectGoogle(idToken: string, confirmCreate: () => boolean = () => false) {
   const url = serverUrl();
   if (!url) throw new Error('server');
   const info = await openLink(url, idToken);
-  if (!info) throw new Error('nolink');
-  await setVault(info);
-  patchSettings({ googleEmail: info.email });
+  if (info) {
+    await setVault(info);
+    patchSettings({ googleEmail: info.email });
+    await syncNow();
+    return;
+  }
+  if (!confirmCreate()) throw new Error('nolink');
+  const v = newVault(url);
+  await setVault(v);
   await syncNow();
+  if (sync.value.error) { const msg = sync.value.error; await setVault(null); patch({ error: '' }); throw new Error(msg); }
+  patchSettings({ googleEmail: await linkGoogle(v, idToken) });
 }
 
 /** From a connected device: let a Google account open this household without an invite. */

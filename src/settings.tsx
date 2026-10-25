@@ -122,11 +122,12 @@ function Household() {
           <Field label={t('server')} hint={t('serverHint')}>
             <input type="url" value={set.server} placeholder={serverUrl() || 'https://dogcare-sync.you.workers.dev'} onInput={(e) => patchSettings({ server: (e.target as HTMLInputElement).value })} />
           </Field>
-          <button class="btn primary block" disabled={busy || !serverUrl()} onClick={() => void run(createHousehold)}>{t('createHousehold')}</button>
+          <button class="btn primary block" disabled={busy || !serverUrl()} onClick={() => void run(async () => { await createHousehold(); showToast(t('linkGoogleNow')); })}>{t('createHousehold')}</button>
           <Field label={t('inviteLink')}><input type="text" value={join} placeholder="https://…#join=…" onInput={(e) => setJoin((e.target as HTMLInputElement).value)} /></Field>
           <button class="btn block" disabled={busy || !join.trim()} onClick={() => void run(() => joinHousehold(join))}>{t('joinHousehold')}</button>
           <p class="or">{t('or')}</p>
-          <GoogleButton onCredential={(tok) => void run(() => connectGoogle(tok))} />
+          <p class="muted small">{t('googleFirst')}</p>
+          <GoogleButton onCredential={(tok) => void run(() => connectGoogle(tok, () => state.value.dogs.length > 0 && confirm(t('googleCreateConfirm'))))} />
         </>
       )}
       {err && <p class="error small">{err}</p>}
