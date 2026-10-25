@@ -5,6 +5,7 @@ import type { Lang } from './types';
 type Dict = Record<string, string>;
 
 const en: Dict = {
+  kg: 'kg', weightKg: 'Weight, kg', measureWeight: 'Record weight (kg) with each entry', forPet: 'Pet',
   'species.dog': 'Dog', 'species.cat': 'Cat', 'species.fish': 'Fish', 'species.bird': 'Bird', 'species.rabbit': 'Rabbit', 'species.hamster': 'Hamster', 'species.reptile': 'Reptile', 'species.other': 'Other', 'species.any': 'Any animal',
   speciesLabel: 'Kind of animal', seedRoutines: 'Add the standard routines for this animal',
   'preset.litter': 'Litter box change', 'preset.waterchange': 'Water change', 'preset.watertest': 'Water test', 'preset.filter': 'Filter cleaning', 'preset.cage': 'Cage cleaning', 'preset.uvb': 'UVB lamp replacement',
@@ -59,6 +60,7 @@ const en: Dict = {
 };
 
 const uk: Dict = {
+  kg: 'кг', weightKg: 'Вага, кг', measureWeight: 'Записувати вагу (кг) з кожним записом', forPet: 'Улюбленець',
   'species.dog': 'Собака', 'species.cat': 'Кіт', 'species.fish': 'Рибка', 'species.bird': 'Птах', 'species.rabbit': 'Кролик', 'species.hamster': 'Хом\'як', 'species.reptile': 'Рептилія', 'species.other': 'Інше', 'species.any': 'Будь-яка тварина',
   speciesLabel: 'Вид тварини', seedRoutines: 'Додати стандартні процедури для цієї тварини',
   'preset.litter': 'Заміна наповнювача', 'preset.waterchange': 'Підміна води', 'preset.watertest': 'Тест води', 'preset.filter': 'Чистка фільтра', 'preset.cage': 'Прибирання клітки', 'preset.uvb': 'Заміна UVB-лампи',

@@ -25,6 +25,7 @@ export interface Preset {
   species: Species[];
   /** Becomes a routine for every animal instead of one kind. */
   any?: boolean;
+  measure?: 'kg';
   /** Ticked by default when setting up a pet of that kind. */
   common: Species[];
 }
@@ -49,7 +50,7 @@ export const PRESETS: Preset[] = [
   { key: 'bath', emoji: '🛁', color: '#0091ff', every: 1, unit: 'month', lead: 3, species: ['dog', 'cat'], common: [] },
   { key: 'ears', emoji: '👂', color: '#d6409f', every: 2, unit: 'week', lead: 1, species: ['dog', 'cat', 'rabbit'], common: [] },
   { key: 'vet', emoji: '🩺', color: '#697177', every: 1, unit: 'year', lead: 14, species: SPECIES, any: true, common: [] },
-  { key: 'weigh', emoji: '⚖️', color: '#978365', every: 1, unit: 'month', lead: 2, species: ['dog', 'cat', 'rabbit', 'bird', 'hamster', 'reptile', 'other'], common: [] },
+  { key: 'weigh', emoji: '⚖️', color: '#978365', measure: 'kg', every: 1, unit: 'month', lead: 2, species: ['dog', 'cat', 'rabbit', 'bird', 'hamster', 'reptile', 'other'], common: [] },
 ];
 
 export const presetsFor = (species: Species) => PRESETS.filter((p) => p.species.includes(species));

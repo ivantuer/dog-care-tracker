@@ -30,6 +30,11 @@ export const hooks = { dataChanged: () => {}, resumed: () => {} };
 export async function init() {
   const saved = await get<AppState>(STATE_KEY);
   if (saved) state.value = { ...defaults(), ...saved, settings: { ...defaults().settings, ...saved.settings } };
+  // Weigh-in routines made before weight entry existed get the weight field.
+  const weighNames = ['Weigh-in', 'Зважування'];
+  if (state.value.tasks.some((x) => !x.measure && weighNames.includes(x.name))) {
+    state.value = { ...state.value, tasks: state.value.tasks.map((x) => (!x.measure && weighNames.includes(x.name) ? { ...x, measure: 'kg' as const, updatedAt: now() } : x)) };
+  }
   ready.value = true;
   effect(() => {
     if (ready.value) void set(STATE_KEY, JSON.parse(JSON.stringify(state.value)));
@@ -83,19 +88,19 @@ export const nextOrder = () => Math.max(-1, ...state.value.tasks.map((t) => t.or
 
 export function taskFromPreset(key: string, name: string, species: Species, dogIds: string[] = []): Omit<Task, 'updatedAt'> {
   const p = PRESETS.find((x) => x.key === key)!;
-  return { id: uid(), name, emoji: p.emoji, color: p.color, every: p.every, unit: p.unit, lead: p.lead, species: p.any ? 'any' : species, dogIds, months: p.months ?? [], order: nextOrder() };
+  return { id: uid(), name, emoji: p.emoji, color: p.color, every: p.every, unit: p.unit, lead: p.lead, species: p.any ? 'any' : species, dogIds, months: p.months ?? [], ...(p.measure ? { measure: p.measure } : {}), order: nextOrder() };
 }
 
 // ---- logs ------------------------------------------------------------------------------------------------
 
-export interface LogInput { taskId: string; dogId: string; day?: string; note?: string; nextDue?: string; skipped?: boolean }
+export interface LogInput { taskId: string; dogId: string; day?: string; note?: string; weight?: number; nextDue?: string; skipped?: boolean }
 
 /** Records a procedure as done (or skipped) and returns its id, so it can be undone. */
 export function logCare(i: LogInput): string {
   const id = uid();
   const log: Log = {
     id, taskId: i.taskId, dogId: i.dogId, at: stampFor(i.day ?? localDate()), by: state.value.settings.me || '?',
-    ...(i.note ? { note: i.note } : {}), ...(i.nextDue ? { nextDue: i.nextDue } : {}), ...(i.skipped ? { skipped: true } : {}),
+    ...(i.note ? { note: i.note } : {}), ...(i.weight ? { weight: i.weight } : {}), ...(i.nextDue ? { nextDue: i.nextDue } : {}), ...(i.skipped ? { skipped: true } : {}),
     updatedAt: now(),
   };
   commit((s) => ({ ...s, logs: [...s.logs, log] }));

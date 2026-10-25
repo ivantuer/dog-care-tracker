@@ -29,3 +29,10 @@ export const taskSummary = (task: Pick<Task, 'every' | 'unit' | 'lead'>) => ever
 export const timeOf = (iso: string) => new Date(iso).toLocaleTimeString(locale(), { hour: '2-digit', minute: '2-digit' });
 
 export const nameOf = (task: Pick<Task, 'name'>) => taskName(lang.value, task.name);
+
+/** Parses a typed weight; accepts a comma as the decimal mark. Returns undefined for anything that is not a positive number. */
+export const parseKg = (s: string) => {
+  const n = Number(s.trim().replace(',', '.'));
+  return Number.isFinite(n) && n > 0 && n < 1000 ? Math.round(n * 100) / 100 : undefined;
+};
+export const fmtKg = (n: number) => `${n.toLocaleString(locale(), { maximumFractionDigits: 2 })} ${t('kg')}`;

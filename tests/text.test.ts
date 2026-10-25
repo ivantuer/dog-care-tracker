@@ -27,6 +27,18 @@ describe('wording', () => {
   });
 });
 
+describe('weight input', () => {
+  it('accepts commas and rejects nonsense', async () => {
+    const { parseKg } = await import('../src/format');
+    expect(parseKg('12,5')).toBe(12.5);
+    expect(parseKg(' 0.456 ')).toBe(0.46);
+    expect(parseKg('abc')).toBeUndefined();
+    expect(parseKg('0')).toBeUndefined();
+    expect(parseKg('-3')).toBeUndefined();
+    expect(parseKg('')).toBeUndefined();
+  });
+});
+
 describe('calendar export', () => {
   it('builds repeating all-day events with alerts', () => {
     const i = itemFor(task('nails', { name: 'Nails; trim', every: 3, unit: 'week', lead: 2, emoji: '✂️' }), dog('rex', { name: 'Rex' }), [], '2026-10-25');

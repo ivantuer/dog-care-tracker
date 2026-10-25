@@ -1,7 +1,7 @@
 import { useState } from 'preact/hooks';
 import { allItems, type Item, type Status } from './care';
 import { localDate } from './dates';
-import { nameOf, agoText, dueText, everyLabel, fmtDay, fmtLongDay } from './format';
+import { fmtKg, nameOf, parseKg, agoText, dueText, everyLabel, fmtDay, fmtLongDay } from './format';
 import { DatePicker } from './datepicker';
 import { LogSheet } from './history';
 import { t } from './i18n';
@@ -36,7 +36,7 @@ function done(i: Item) {
 }
 
 function Card({ i, showDog, onOpen }: { i: Item; showDog: boolean; onOpen: () => void }) {
-  const sub = i.last ? t('last', { when: agoText(i.last.at), by: i.last.by }) : t('never');
+  const sub = i.last ? t('last', { when: agoText(i.last.at), by: i.last.by }) + (i.last.weight ? ` · ${fmtKg(i.last.weight)}` : '') : t('never');
   return (
     <div class={`item ${i.status}`}>
       <button class="item-main" onClick={onOpen}>
@@ -47,7 +47,7 @@ function Card({ i, showDog, onOpen }: { i: Item; showDog: boolean; onOpen: () =>
           <span class="small muted">{sub}</span>
         </span>
       </button>
-      <button class="done" aria-label={t('done')} onClick={() => done(i)}>✓</button>
+      <button class="done" aria-label={t('done')} onClick={() => (i.task.measure ? onOpen() : done(i))}>✓</button>
     </div>
   );
 }
@@ -102,12 +102,13 @@ function ItemSheet({ i, onClose }: { i: Item; onClose: () => void }) {
   const today = localDate();
   const [day, setDay] = useState(today);
   const [note, setNote] = useState('');
+  const [kg, setKg] = useState('');
   const [next, setNext] = useState('');
   const [editing, setEditing] = useState<Log | null>(null);
   const recent = state.value.logs.filter((l) => l.taskId === i.task.id && l.dogId === i.dog.id).sort((a, b) => b.at.localeCompare(a.at)).slice(0, 5);
 
   const submit = (skipped: boolean) => {
-    const id = logCare({ taskId: i.task.id, dogId: i.dog.id, day: skipped ? today : day, note: note.trim(), nextDue: next || undefined, skipped });
+    const id = logCare({ taskId: i.task.id, dogId: i.dog.id, day: skipped ? today : day, note: note.trim(), weight: skipped ? undefined : parseKg(kg), nextDue: next || undefined, skipped });
     showToast(`${skipped ? t('skipped') : '✓'} ${i.task.emoji} ${nameOf(i.task)} · ${i.dog.name}`, () => removeLog(id));
     onClose();
   };
@@ -127,9 +128,13 @@ function ItemSheet({ i, onClose }: { i: Item; onClose: () => void }) {
         <Field label={t('doneOn')}><DatePicker value={day} max={today} onChange={(v) => setDay(v || today)} /></Field>
         <Field label={t('nextDue')} hint={t('nextDueHint')}><DatePicker value={next} min={today} clearable onChange={setNext} /></Field>
       </div>
-      <Field label={t('note')}><input type="text" value={note} placeholder={t('notePlaceholder')} onInput={(e) => setNote((e.target as HTMLInputElement).value)} /></Field>
+      {i.task.measure ? (
+        <Field label={t('weightKg')}><input type="text" inputMode="decimal" value={kg} placeholder="0.0" onInput={(e) => setKg((e.target as HTMLInputElement).value)} /></Field>
+      ) : (
+        <Field label={t('note')}><input type="text" value={note} placeholder={t('notePlaceholder')} onInput={(e) => setNote((e.target as HTMLInputElement).value)} /></Field>
+      )}
       <div class="row gap">
-        <button class="btn primary grow" onClick={() => submit(false)}>✓ {t('markDone')}</button>
+        <button class="btn primary grow" disabled={!!i.task.measure && !parseKg(kg)} onClick={() => submit(false)}>✓ {t('markDone')}</button>
         <button class="btn" onClick={() => submit(true)}>{t('skip')}</button>
       </div>
       {recent.length > 0 && (
@@ -139,7 +144,7 @@ function ItemSheet({ i, onClose }: { i: Item; onClose: () => void }) {
             {recent.map((l) => (
               <li key={l.id}>
                 <button class="row between small recent" onClick={() => setEditing(l)}>
-                  <span>{fmtDay(localDate(new Date(l.at)), true)}{l.skipped ? ` · ${t('skipped')}` : ''}{l.note ? ` · ${l.note}` : ''}</span>
+                  <span>{fmtDay(localDate(new Date(l.at)), true)}{l.skipped ? ` · ${t('skipped')}` : ''}{l.weight ? ` · ${fmtKg(l.weight)}` : ''}{l.note ? ` · ${l.note}` : ''}</span>
                   <span class="muted">{l.by} ✎</span>
                 </button>
               </li>

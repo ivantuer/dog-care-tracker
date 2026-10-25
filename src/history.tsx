@@ -1,12 +1,12 @@
 import { useState } from 'preact/hooks';
 import { DatePicker } from './datepicker';
 import { localDate } from './dates';
-import { fmtLongDay, nameOf, timeOf } from './format';
+import { fmtKg, fmtLongDay, nameOf, parseKg, timeOf } from './format';
 import { t } from './i18n';
 import { removeLog, saveLog, state } from './store';
 import { stampFor } from './dates';
 import type { Log } from './types';
-import { Badge, Empty, Field, Sheet } from './ui';
+import { Badge, Chip, Empty, Field, Sheet } from './ui';
 import { DogFilter } from './today';
 
 export function History() {
@@ -41,8 +41,9 @@ export function History() {
                 <Badge emoji={task.emoji} color={task.color} size={40} />
                 <span class="item-text">
                   <b>{nameOf(task)}{l.skipped ? ` · ${t('skipped')}` : ''}</b>
-                  <span class="small muted">{s.dogs.length > 1 ? `${dog.emoji} ${dog.name} · ` : ''}{l.by} · {timeOf(l.at)}{l.note ? ` · ${l.note}` : ''}</span>
+                  <span class="small muted">{s.dogs.length > 1 ? `${dog.emoji} ${dog.name} · ` : ''}{l.by} · {timeOf(l.at)}{l.weight ? ` · ${fmtKg(l.weight)}` : ''}{l.note ? ` · ${l.note}` : ''}</span>
                 </span>
+                <span class="chev" aria-hidden="true">✎</span>
               </button>
             );
           })}
@@ -59,11 +60,13 @@ export function LogSheet({ log, onClose }: { log: Log; onClose: () => void }) {
   const [note, setNote] = useState(log.note ?? '');
   const [by, setBy] = useState(log.by);
   const [next, setNext] = useState(log.nextDue ?? '');
+  const [kg, setKg] = useState(log.weight ? String(log.weight) : '');
+  const [dogId, setDogId] = useState(log.dogId);
   const task = state.value.tasks.find((x) => x.id === log.taskId);
 
   const save = () => {
     const sameDay = day === localDate(new Date(log.at));
-    saveLog({ ...log, at: sameDay ? log.at : stampFor(day), note: note.trim() || undefined, by: by.trim() || log.by, nextDue: next || undefined });
+    saveLog({ ...log, at: sameDay ? log.at : stampFor(day), note: note.trim() || undefined, weight: task?.measure ? parseKg(kg) : log.weight, dogId, by: by.trim() || log.by, nextDue: next || undefined });
     onClose();
   };
 
@@ -74,7 +77,14 @@ export function LogSheet({ log, onClose }: { log: Log; onClose: () => void }) {
         <Field label={t('doneBy')}><input type="text" value={by} onInput={(e) => setBy((e.target as HTMLInputElement).value)} /></Field>
       </div>
       <Field label={t('nextDue')} hint={t('nextDueHint')}><DatePicker value={next} clearable onChange={setNext} /></Field>
-      <Field label={t('note')}><input type="text" value={note} onInput={(e) => setNote((e.target as HTMLInputElement).value)} /></Field>
+      {state.value.dogs.length > 1 && (
+        <Field label={t('forPet')}>
+          <div class="chips">{state.value.dogs.map((d) => <Chip key={d.id} on={dogId === d.id} onClick={() => setDogId(d.id)}>{d.emoji} {d.name}</Chip>)}</div>
+        </Field>
+      )}
+      {task?.measure
+        ? <Field label={t('weightKg')}><input type="text" inputMode="decimal" value={kg} onInput={(e) => setKg((e.target as HTMLInputElement).value)} /></Field>
+        : <Field label={t('note')}><input type="text" value={note} onInput={(e) => setNote((e.target as HTMLInputElement).value)} /></Field>}
       <div class="row gap">
         <button class="btn primary grow" onClick={save}>{t('save')}</button>
         <button class="btn danger" onClick={() => { removeLog(log.id); onClose(); }}>{t('delete')}</button>

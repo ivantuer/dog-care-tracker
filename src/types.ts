@@ -34,6 +34,8 @@ export interface Task {
   /** First due date for a dog that has never had it, YYYY-MM-DD. Defaults to today. */
   startDate?: string;
   notes?: string;
+  /** Records a measurement with each entry (weight in kg) instead of a note. */
+  measure?: 'kg';
   archived?: boolean;
   order: number;
   updatedAt: string;
@@ -48,6 +50,8 @@ export interface Log {
   /** Name of the person who did it. */
   by: string;
   note?: string;
+  /** Weight in kg, for routines that measure it. */
+  weight?: number;
   /** Overrides the computed next due date, YYYY-MM-DD (e.g. a booster in 3 weeks). */
   nextDue?: string;
   /** Postponed on purpose: counts for scheduling but not as done. */

@@ -135,6 +135,10 @@ function TaskSheet({ draft, isNew, onClose }: { draft: Draft; isNew: boolean; on
           <label class="switch"><input type="checkbox" checked={!!d.archived} onChange={(e) => set('archived', (e.target as HTMLInputElement).checked || undefined)} /><span /></label>
         </Field>
       </div>
+      <div class="row between">
+        <span>{t('measureWeight')}</span>
+        <label class="switch"><input type="checkbox" checked={d.measure === 'kg'} onChange={(e) => set('measure', (e.target as HTMLInputElement).checked ? 'kg' : undefined)} /><span /></label>
+      </div>
       <Field label={t('notes')}><textarea rows={2} value={d.notes ?? ''} placeholder={t('notesPlaceholder')} onInput={(e) => set('notes', (e.target as HTMLTextAreaElement).value || undefined)} /></Field>
 
       <div class="row gap">
