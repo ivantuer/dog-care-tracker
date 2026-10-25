@@ -156,3 +156,4 @@ textarea { resize: vertical; }
 .viewer { position: fixed; inset: 0; z-index: 50; background: rgba(0,0,0,.92); display: grid; place-items: center; align-content: center; gap: 10px; padding: 16px; color: #fff; }
 .viewer img { max-width: 100%; max-height: 82vh; border-radius: 14px; object-fit: contain; } .viewer img.blurred { filter: blur(6px); }
 .viewer .icon-btn { position: absolute; top: calc(env(safe-area-inset-top) + 14px); right: 14px; background: rgba(255,255,255,.18); color: #fff; }
+.gbtn { display: flex; justify-content: center; min-height: 44px; } .or { text-align: center; color: var(--muted); font-size: 13px; }

@@ -5,6 +5,9 @@ import type { Lang } from './types';
 type Dict = Record<string, string>;
 
 const en: Dict = {
+  googleTitle: 'Sign in with Google', googleExplain: 'Reopen this household on any phone with your Google account, no invite needed. Trade-off: the server then keeps the household key sealed, so it could technically read the data. Invite-only is more private.',
+  googleOn: 'Google sign-in is on for {email}.', googleOff: 'Turn off Google sign-in', googleConfirmOff: 'Confirm with Google to turn it off.',
+  or: 'or', haveOther: 'Already use Pet Care on another device?', 'err.nolink': 'No household is linked to that Google account yet. On the device that has your data, open Settings and turn on Google sign-in.', 'err.google': 'Google sign-in could not load. Check your connection.',
   viewPhoto: 'View photo', photoUnavailable: 'The full photo is not available yet. Showing the preview.', 'err.photoUpload': 'The full photo could not be uploaded, so only the preview was saved. Try again with a connection.',
   addPhoto: 'Add a photo', changePhoto: 'Change photo', removePhoto: 'Remove', 'err.photo': 'Could not read that image.',
   kg: 'kg', weightKg: 'Weight, kg', measureWeight: 'Record weight (kg) with each entry', forPet: 'Pet',
@@ -62,6 +65,9 @@ const en: Dict = {
 };
 
 const uk: Dict = {
+  googleTitle: 'Вхід через Google', googleExplain: 'Відкривайте цей спільний доступ на будь-якому телефоні зі своїм акаунтом Google, без запрошення. Компроміс: сервер тоді зберігає ключ у запечатаному вигляді, тож технічно міг би читати дані. Лише за запрошенням приватніше.',
+  googleOn: 'Вхід через Google увімкнено для {email}.', googleOff: 'Вимкнути вхід через Google', googleConfirmOff: 'Підтвердьте через Google, щоб вимкнути.',
+  or: 'або', haveOther: 'Уже користуєтесь Pet Care на іншому пристрої?', 'err.nolink': 'До цього акаунта Google ще не привʼязано спільного доступу. На пристрої з вашими даними відкрийте Налаштування й увімкніть вхід через Google.', 'err.google': 'Не вдалося завантажити вхід через Google. Перевірте зʼєднання.',
   viewPhoto: 'Переглянути фото', photoUnavailable: 'Повне фото поки недоступне. Показано мініатюру.', 'err.photoUpload': 'Не вдалося завантажити повне фото, збережено лише мініатюру. Спробуйте ще раз із зʼєднанням.',
   addPhoto: 'Додати фото', changePhoto: 'Змінити фото', removePhoto: 'Прибрати', 'err.photo': 'Не вдалося прочитати зображення.',
   kg: 'кг', weightKg: 'Вага, кг', measureWeight: 'Записувати вагу (кг) з кожним записом', forPet: 'Улюбленець',

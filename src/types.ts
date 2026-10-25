@@ -72,6 +72,8 @@ export interface Settings {
   hour: number;
   /** Sync server address; empty uses the built-in default. */
   server: string;
+  /** Google account that can reopen the household without an invite. */
+  googleEmail: string;
   push: boolean;
   notify: boolean;
   dogFilter: string;

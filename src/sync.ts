@@ -1,8 +1,8 @@
 import { signal } from '@preact/signals';
 import { del, get, set } from 'idb-keyval';
 import { DEFAULT_SERVER } from './config';
-import { applySynced, hooks, sharedData, state } from './store';
-import { canon, createInvite, liveProtocols, liveUrl, mergeData, newVault, redeemInvite, syncOnce, SyncAuthError, type Vault } from './sync-core';
+import { applySynced, hooks, patchSettings, sharedData, state } from './store';
+import { canon, createInvite, linkGoogle, openLink, unlinkGoogle, liveProtocols, liveUrl, mergeData, newVault, redeemInvite, syncOnce, SyncAuthError, type Vault } from './sync-core';
 import type { Log } from './types';
 
 const VAULT_KEY = 'dog-care-vault';
@@ -124,7 +124,29 @@ export async function joinHousehold(text: string) {
   if (sync.value.error) { const msg = sync.value.error; await setVault(null); patch({ error: '' }); throw new Error(msg); }
 }
 
-export const leaveHousehold = () => setVault(null);
+export const leaveHousehold = () => { patchSettings({ googleEmail: '' }); return setVault(null); };
+
+/** Continue with Google on a new device: opens the household this account was linked to. */
+export async function connectGoogle(idToken: string) {
+  const url = serverUrl();
+  if (!url) throw new Error('server');
+  const info = await openLink(url, idToken);
+  if (!info) throw new Error('nolink');
+  await setVault(info);
+  patchSettings({ googleEmail: info.email });
+  await syncNow();
+}
+
+/** From a connected device: let a Google account open this household without an invite. */
+export async function enableGoogle(idToken: string) {
+  if (!vault.value) throw new Error('household');
+  patchSettings({ googleEmail: await linkGoogle(vault.value, idToken) });
+}
+
+export async function disableGoogle(idToken: string) {
+  await unlinkGoogle(serverUrl(), idToken);
+  patchSettings({ googleEmail: '' });
+}
 
 /** A fresh single-use invite link for the other person. */
 export async function newInviteLink(): Promise<string> {

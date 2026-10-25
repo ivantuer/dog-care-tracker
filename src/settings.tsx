@@ -8,11 +8,11 @@ import { buildIcs, download } from './ics';
 import { ACCENTS, COLORS, presetsFor, SPECIES, SPECIES_EMOJI } from './presets';
 import { disablePush, enableLocalOnly, enablePush, isIos, pushSupported, scheduleUpload, showDigest, standalone, supported } from './push';
 import { exportJson, importJson, patchSettings, removeDog, saveDog, saveTask, sharedData, state, taskFromPreset, uid } from './store';
-import { createHousehold, joinHousehold, leaveHousehold, newInviteLink, serverUrl, sync, syncNow, vault } from './sync';
+import { createHousehold, joinHousehold, leaveHousehold, newInviteLink, connectGoogle, disableGoogle, enableGoogle, serverUrl, sync, syncNow, vault } from './sync';
 import type { Dog, Lang, Species } from './types';
 import { cachePhoto, fullPhotoUrl, storeFullPhoto, toAvatar, toFull } from './photo';
 import { newPhotoId } from './sync-core';
-import { Avatar, Chip, Field, Sheet, showToast } from './ui';
+import { Avatar, Chip, Field, GoogleButton, Sheet, showToast } from './ui';
 
 export function Settings() {
   const s = state.value;
@@ -77,11 +77,12 @@ function Household() {
     setBusy(true); setErr('');
     try { await fn(); } catch (e) {
       const m = (e as Error).message;
-      setErr(m === 'server' ? t('noServerHint') : m === 'invite' ? t('err.invite') : m === 'used' ? t('err.used') : `${t('err.sync')} (${m})`);
+      setErr(m === 'server' ? t('noServerHint') : m === 'invite' ? t('err.invite') : m === 'used' ? t('err.used') : m === 'nolink' ? t('err.nolink') : `${t('err.sync')} (${m})`);
     } finally { setBusy(false); }
   };
 
   const [invite, setInvite] = useState('');
+  const [confirmOff, setConfirmOff] = useState(false);
   const invitePartner = () => void run(async () => setInvite(await newInviteLink()));
 
   return (
@@ -100,6 +101,20 @@ function Household() {
             <button class="btn" disabled={st.busy} onClick={() => void syncNow()}>{t('syncNow')}</button>
             <button class="btn danger" onClick={() => confirm(t('leaveConfirm')) && void leaveHousehold()}>{t('leave')}</button>
           </div>
+          <h2>{t('googleTitle')}</h2>
+          {set.googleEmail ? (
+            <>
+              <p class="small">{t('googleOn', { email: set.googleEmail })}</p>
+              {confirmOff ? (
+                <><p class="muted small">{t('googleConfirmOff')}</p><GoogleButton onCredential={(tok) => void run(async () => { await disableGoogle(tok); setConfirmOff(false); })} /></>
+              ) : <button class="btn danger" onClick={() => setConfirmOff(true)}>{t('googleOff')}</button>}
+            </>
+          ) : (
+            <>
+              <p class="muted small">{t('googleExplain')}</p>
+              <GoogleButton onCredential={(tok) => void run(() => enableGoogle(tok))} />
+            </>
+          )}
         </>
       ) : (
         <>
@@ -110,6 +125,8 @@ function Household() {
           <button class="btn primary block" disabled={busy || !serverUrl()} onClick={() => void run(createHousehold)}>{t('createHousehold')}</button>
           <Field label={t('inviteLink')}><input type="text" value={join} placeholder="https://…#join=…" onInput={(e) => setJoin((e.target as HTMLInputElement).value)} /></Field>
           <button class="btn block" disabled={busy || !join.trim()} onClick={() => void run(() => joinHousehold(join))}>{t('joinHousehold')}</button>
+          <p class="or">{t('or')}</p>
+          <GoogleButton onCredential={(tok) => void run(() => connectGoogle(tok))} />
         </>
       )}
       {err && <p class="error small">{err}</p>}

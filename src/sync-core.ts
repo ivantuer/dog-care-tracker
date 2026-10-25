@@ -131,6 +131,33 @@ export async function deletePhoto(v: Vault, id: string): Promise<void> {
   await fetch(`${v.url}${v.path}/photo/${id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${v.bearer}` } }).catch(() => {});
 }
 
+// ---- Google sign-in --------------------------------------------------------------------------------------
+
+async function postJson<T>(url: string, path: string, body: unknown): Promise<{ status: number; json: T & { error?: string } }> {
+  const res = await fetch(`${base(url)}${path}`, { method: 'POST', body: JSON.stringify(body) });
+  return { status: res.status, json: (await res.json().catch(() => ({}))) as T & { error?: string } };
+}
+
+/** Lets this Google account reopen the household on any device. The server keeps the credentials sealed. */
+export async function linkGoogle(v: Vault, idToken: string): Promise<string> {
+  const r = await postJson<{ email: string }>(v.url, '/link', { idToken, vaultId: v.path.replace('/v/', ''), token: v.bearer, masterKey: v.key });
+  if (r.status !== 200) throw new Error(r.json.error ?? `Request failed (${r.status})`);
+  return r.json.email;
+}
+
+/** The household linked to this Google account, or null if none. */
+export async function openLink(url: string, idToken: string): Promise<(Vault & { email: string }) | null> {
+  const r = await postJson<{ vaultId: string; token: string; masterKey: string; email: string }>(url, '/link/open', { idToken });
+  if (r.status === 404) return null;
+  if (r.status !== 200) throw new Error(r.json.error ?? `Request failed (${r.status})`);
+  return { url: base(url), path: `/v/${r.json.vaultId}`, bearer: r.json.token, key: r.json.masterKey, email: r.json.email };
+}
+
+export async function unlinkGoogle(url: string, idToken: string): Promise<void> {
+  const r = await postJson<object>(url, '/link/remove', { idToken });
+  if (r.status !== 200) throw new Error(r.json.error ?? `Request failed (${r.status})`);
+}
+
 // ---- invites ---------------------------------------------------------------------------------------------
 // An invite link works once. The household credentials are sealed under a random key that lives only in the link's #
 // part; the server holds the sealed copy and hands it out to the first person who asks, then forgets it.

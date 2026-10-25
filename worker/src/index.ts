@@ -10,6 +10,7 @@
  *   DELETE /v/:id/push              { endpoint }                       unregister
  *   POST   /v/:id/invite            { code, iv, ct }                   store a sealed single-use invite (7 days)
  *   PUT/GET/DELETE /v/:id/photo/:pid  encrypted photo bytes (R2), up to 3 MB, 40 per household
+ *   POST   /link, /link/open, /link/remove   optional Google sign-in (see Directory)
  *   GET    /v/:id/invite/:code      no auth                            -> { iv, ct } once, then 404
  */
 import { DurableObject } from 'cloudflare:workers';
@@ -18,6 +19,10 @@ import { sendPush, type PushSub } from './vapid';
 export interface Env {
   VAULT: DurableObjectNamespace<Vault>;
   PHOTOS: R2Bucket;
+  DIRECTORY: DurableObjectNamespace<Directory>;
+  GOOGLE_CLIENT_ID?: string;
+  /** Override for tests; defaults to Google's published signing keys. */
+  GOOGLE_JWKS_URL?: string;
   ORIGINS?: string;
   VAPID_PUBLIC?: string;
   VAPID_PRIVATE?: string;
@@ -91,6 +96,8 @@ export class Vault extends DurableObject<Env> {
 
     const rec = await this.ctx.storage.get<Rec>('vault');
     if (rec && !same(rec.auth, auth)) return json({ error: 'not authorized for this vault' }, 401);
+
+    if (url.pathname.endsWith('/auth')) return rec ? json({ ok: true }) : json({ error: 'empty' }, 404);
 
     if (url.pathname.endsWith('/ws')) {
       if (!rec) return json({ error: 'empty' }, 404);
@@ -222,6 +229,83 @@ export class Vault extends DurableObject<Env> {
   webSocketClose(ws: WebSocket) { try { ws.close(); } catch { /* already closed */ } }
 }
 
+// ---- Google sign-in ---------------------------------------------------------------------------------------
+// Optional convenience: a Google account can reopen a household on a new device without an invite. The server then keeps the
+// household's credentials sealed under a key of its own, so unlike invite-only sharing it could in principle read the data.
+
+interface Jwk { kid: string; kty: string; n: string; e: string }
+let jwksCache: { at: number; keys: Jwk[] } | null = null;
+const unb64u = (s: string) => Uint8Array.from(atob(s.replace(/-/g, '+').replace(/_/g, '/')), (c) => c.charCodeAt(0));
+
+async function googleKeys(env: Env): Promise<Jwk[]> {
+  if (jwksCache && Date.now() - jwksCache.at < 3_600_000) return jwksCache.keys;
+  const res = await fetch(env.GOOGLE_JWKS_URL ?? 'https://www.googleapis.com/oauth2/v3/certs');
+  if (!res.ok) throw new Error('could not load Google signing keys');
+  jwksCache = { at: Date.now(), keys: ((await res.json()) as { keys: Jwk[] }).keys };
+  return jwksCache.keys;
+}
+
+/** Verifies signature, audience, issuer, expiry and email_verified of a Google ID token. Null if anything is off. */
+async function verifyGoogleToken(token: string, env: Env): Promise<{ sub: string; email: string } | null> {
+  try {
+    if (!env.GOOGLE_CLIENT_ID) return null;
+    const [h, p, s] = token.split('.');
+    if (!h || !p || !s) return null;
+    const header = JSON.parse(new TextDecoder().decode(unb64u(h))) as { alg: string; kid: string };
+    if (header.alg !== 'RS256') return null;
+    const jwk = (await googleKeys(env)).find((k) => k.kid === header.kid);
+    if (!jwk) return null;
+    const key = await crypto.subtle.importKey('jwk', { ...jwk, alg: 'RS256', ext: true }, { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' }, false, ['verify']);
+    if (!(await crypto.subtle.verify('RSASSA-PKCS1-v1_5', key, unb64u(s), te.encode(`${h}.${p}`)))) return null;
+    const c = JSON.parse(new TextDecoder().decode(unb64u(p))) as { iss: string; aud: string; exp: number; sub: string; email?: string; email_verified?: boolean };
+    if (c.iss !== 'https://accounts.google.com' && c.iss !== 'accounts.google.com') return null;
+    if (c.aud !== env.GOOGLE_CLIENT_ID || c.exp * 1000 < Date.now()) return null;
+    if (!c.sub || !c.email || c.email_verified !== true) return null;
+    return { sub: c.sub, email: c.email.toLowerCase() };
+  } catch {
+    return null;
+  }
+}
+
+interface LinkRec { vaultId: string; iv: string; sealed: string; email: string }
+
+export class Directory extends DurableObject<Env> {
+  private async key(): Promise<CryptoKey> {
+    let raw = await this.ctx.storage.get<string>('linkkey');
+    if (!raw) { raw = hex(crypto.getRandomValues(new Uint8Array(32))); await this.ctx.storage.put('linkkey', raw); }
+    return crypto.subtle.importKey('raw', Uint8Array.from(raw.match(/../g)!.map((x) => parseInt(x, 16))), 'AES-GCM', false, ['encrypt', 'decrypt']);
+  }
+
+  async fetch(req: Request): Promise<Response> {
+    const path = new URL(req.url).pathname;
+    let body: { idToken?: string; vaultId?: string; token?: string; masterKey?: string };
+    try { body = JSON.parse(await req.text()); } catch { return json({ error: 'bad json' }, 400); }
+    const who = body.idToken ? await verifyGoogleToken(body.idToken, this.env) : null;
+    if (!who) return json({ error: 'Google sign-in could not be verified' }, 401);
+    const id = `link:${who.sub}`;
+
+    if (path === '/link/remove') { await this.ctx.storage.delete(id); return json({ ok: true }); }
+
+    if (path === '/link/open') {
+      const row = await this.ctx.storage.get<LinkRec>(id);
+      if (!row) return json({ error: 'none' }, 404);
+      const pt = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: unb64u(row.iv) }, await this.key(), unb64u(row.sealed));
+      const c = JSON.parse(new TextDecoder().decode(pt)) as { token: string; masterKey: string };
+      return json({ vaultId: row.vaultId, token: c.token, masterKey: c.masterKey, email: who.email });
+    }
+
+    // /link: the caller must hold the household (its token) before the server keeps a copy for the Google account.
+    if (!/^[0-9a-f]{32}$/.test(body.vaultId ?? '') || !/^[0-9a-f]{64}$/.test(body.token ?? '') || typeof body.masterKey !== 'string' || body.masterKey.length > 100) return json({ error: 'bad body' }, 400);
+    const proof = await this.env.VAULT.get(this.env.VAULT.idFromName(body.vaultId!)).fetch(new Request(`https://vault/v/${body.vaultId}/auth`, { headers: { 'X-Auth': await sha256(body.token!) } }));
+    if (!proof.ok) return json({ error: 'not authorized for this household' }, 401);
+    const iv = crypto.getRandomValues(new Uint8Array(12));
+    const ct = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, await this.key(), te.encode(JSON.stringify({ token: body.token, masterKey: body.masterKey })));
+    const rec: LinkRec = { vaultId: body.vaultId!, iv: b64u(iv), sealed: b64u(ct), email: who.email };
+    await this.ctx.storage.put(id, rec);
+    return json({ ok: true, email: who.email });
+  }
+}
+
 // ---- router ----------------------------------------------------------------------------------------------
 
 export default {
@@ -236,6 +320,8 @@ export default {
       for (const [k, v] of Object.entries(headers)) out.headers.set(k, v);
       return out;
     };
+
+    if (req.method === 'POST' && /^\/link(\/open|\/remove)?$/.test(url.pathname)) return reply(await env.DIRECTORY.get(env.DIRECTORY.idFromName('directory')).fetch(req));
 
     if (url.pathname === '/config') return reply(json({ vapid: env.VAPID_PUBLIC || null }));
 

@@ -1,6 +1,8 @@
 import { signal } from '@preact/signals';
 import type { ComponentChildren } from 'preact';
-import { useEffect, useState } from 'preact/hooks';
+import { useEffect, useRef, useState } from 'preact/hooks';
+import { GOOGLE_CLIENT_ID } from './config';
+import { renderGoogleButton } from './google';
 import { t } from './i18n';
 import type { Dog } from './types';
 
@@ -105,4 +107,14 @@ export function NumInput({ value, min, max, onChange }: { value: number; min: nu
       onBlur={() => setText(String(value))}
     />
   );
+}
+
+/** Google's own sign-in button. Calls back with an ID token that the server verifies. */
+export function GoogleButton({ onCredential }: { onCredential: (idToken: string) => void }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [failed, setFailed] = useState(false);
+  useEffect(() => {
+    if (ref.current) renderGoogleButton(ref.current, GOOGLE_CLIENT_ID, onCredential).catch(() => setFailed(true));
+  }, []);
+  return failed ? <p class="error small">{t('err.google')}</p> : <div ref={ref} class="gbtn" />;
 }

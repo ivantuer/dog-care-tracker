@@ -15,7 +15,7 @@ export const defaults = (): AppState => ({
   tasks: [],
   logs: [],
   tombstones: {},
-  settings: { me: '', lang: guessLang(), theme: 'auto', accent: '#ff7a45', hour: 9, server: '', push: false, notify: false, dogFilter: 'all' },
+  settings: { me: '', lang: guessLang(), theme: 'auto', accent: '#ff7a45', hour: 9, server: '', googleEmail: '', push: false, notify: false, dogFilter: 'all' },
 });
 
 export const state = signal<AppState>(defaults());

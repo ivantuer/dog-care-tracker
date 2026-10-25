@@ -3,9 +3,9 @@ import { everyLabel } from './format';
 import { t } from './i18n';
 import { COLORS, presetsFor, SPECIES, SPECIES_EMOJI } from './presets';
 import { patchSettings, saveDog, saveTask, state, taskFromPreset, uid } from './store';
-import { joinHousehold, pendingInvite, serverUrl } from './sync';
+import { connectGoogle, joinHousehold, pendingInvite, serverUrl } from './sync';
 import type { Species } from './types';
-import { Badge, Chip, Field } from './ui';
+import { Badge, Chip, Field, GoogleButton } from './ui';
 
 /** First run: your name, your dog, and which routines to track. Everything can be changed later. */
 export function Onboard({ done }: { done: () => void }) {
@@ -29,6 +29,18 @@ export function Onboard({ done }: { done: () => void }) {
     done();
   };
 
+  const googleIn = async (tok: string) => {
+    setBusy(true); setErr('');
+    try {
+      patchSettings({ me: me.trim() || state.value.settings.me });
+      await connectGoogle(tok);
+      done();
+    } catch (e) {
+      const m = (e as Error).message;
+      setErr(m === 'nolink' ? t('err.nolink') : m === 'server' ? t('noServerHint') : t('err.sync'));
+    } finally { setBusy(false); }
+  };
+
   const joinWith = async (text: string) => {
     setBusy(true); setErr('');
     try {
@@ -49,6 +61,12 @@ export function Onboard({ done }: { done: () => void }) {
       <p class="muted">{t('welcomeText')}</p>
       <Field label={t('yourName')} hint={t('yourNameHint')}><input type="text" value={me} placeholder={t('yourNamePlaceholder')} onInput={(e) => setMe((e.target as HTMLInputElement).value)} /></Field>
 
+      {!pendingInvite.value && (
+        <div class="card">
+          <h3>{t('haveOther')}</h3>
+          <GoogleButton onCredential={(tok) => void googleIn(tok)} />
+        </div>
+      )}
       {pendingInvite.value ? (
         <div class="card">
           <h3>{t('invited')}</h3>
