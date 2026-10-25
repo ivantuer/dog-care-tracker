@@ -17,6 +17,8 @@ interface Props {
   placeholder?: string;
 }
 
+// The calendar sits inside the form's <label>; a click there would otherwise be forwarded to the field and reopen it,
+// so every click on the overlay cancels that default action.
 /** A field that opens a month calendar with quick picks. Replaces the browser's plain date input. */
 export function DatePicker(p: Props) {
   const [open, setOpen] = useState(false);
@@ -53,8 +55,8 @@ function Calendar({ value, onChange, min, max, clearable, onClose }: Props & { o
     : [[t('tomorrow'), addInterval(today, 1, 'day')], [t('inWeek'), addInterval(today, 1, 'week')], [t('inMonth'), addInterval(today, 1, 'month')], [t('in3Months'), addInterval(today, 3, 'month')]];
 
   return (
-    <div class="cal-wrap" onClick={(e) => { e.stopPropagation(); onClose(); }}>
-      <div class="cal" role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}>
+    <div class="cal-wrap" onClick={(e) => { e.preventDefault(); e.stopPropagation(); onClose(); }}>
+      <div class="cal" role="dialog" aria-modal="true" onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}>
         <div class="cal-head">
           <button class="icon-btn" aria-label="‹" onClick={() => (months ? setY(y - 1) : shift(-1))}>‹</button>
           <button class="cal-title" onClick={() => setMonths(!months)}>
