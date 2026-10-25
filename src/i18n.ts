@@ -5,6 +5,7 @@ import type { Lang } from './types';
 type Dict = Record<string, string>;
 
 const en: Dict = {
+  addPhoto: 'Add a photo', changePhoto: 'Change photo', removePhoto: 'Remove', 'err.photo': 'Could not read that image.',
   kg: 'kg', weightKg: 'Weight, kg', measureWeight: 'Record weight (kg) with each entry', forPet: 'Pet',
   'species.dog': 'Dog', 'species.cat': 'Cat', 'species.fish': 'Fish', 'species.bird': 'Bird', 'species.rabbit': 'Rabbit', 'species.hamster': 'Hamster', 'species.reptile': 'Reptile', 'species.other': 'Other', 'species.any': 'Any animal',
   speciesLabel: 'Kind of animal', seedRoutines: 'Add the standard routines for this animal',
@@ -60,6 +61,7 @@ const en: Dict = {
 };
 
 const uk: Dict = {
+  addPhoto: 'Додати фото', changePhoto: 'Змінити фото', removePhoto: 'Прибрати', 'err.photo': 'Не вдалося прочитати зображення.',
   kg: 'кг', weightKg: 'Вага, кг', measureWeight: 'Записувати вагу (кг) з кожним записом', forPet: 'Улюбленець',
   'species.dog': 'Собака', 'species.cat': 'Кіт', 'species.fish': 'Рибка', 'species.bird': 'Птах', 'species.rabbit': 'Кролик', 'species.hamster': 'Хом\'як', 'species.reptile': 'Рептилія', 'species.other': 'Інше', 'species.any': 'Будь-яка тварина',
   speciesLabel: 'Вид тварини', seedRoutines: 'Додати стандартні процедури для цієї тварини',

@@ -35,3 +35,7 @@ See [worker/README.md](worker/README.md). Without a server the app still works f
 
 - iPhone: install to the Home Screen (Share → Add to Home Screen) before enabling push; Safari only allows push for installed apps (iOS 16.4+).
 - Calendars repeat on a fixed schedule; after a late completion, export again.
+
+## Pet photos
+
+A photo is cropped to a square and shrunk to a ~15-30 KB JPEG on the phone, then stored inside the pet's record. It syncs with everything else, end-to-end encrypted, so it costs nothing extra and needs no file storage. The server accepts up to 1 MB per household, which is room for dozens of photos.

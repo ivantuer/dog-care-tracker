@@ -7,6 +7,8 @@ export interface Dog {
   id: string;
   species?: Species;
   name: string;
+  /** Small square JPEG as a data URL; travels with the encrypted household data. */
+  photo?: string;
   emoji: string;
   color: string;
   breed?: string;

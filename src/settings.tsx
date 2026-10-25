@@ -10,6 +10,7 @@ import { disablePush, enableLocalOnly, enablePush, isIos, pushSupported, schedul
 import { exportJson, importJson, patchSettings, removeDog, saveDog, saveTask, sharedData, state, taskFromPreset, uid } from './store';
 import { createHousehold, joinHousehold, leaveHousehold, newInviteLink, serverUrl, sync, syncNow, vault } from './sync';
 import type { Dog, Lang, Species } from './types';
+import { toAvatar } from './photo';
 import { Avatar, Chip, Field, Sheet, showToast } from './ui';
 
 export function Settings() {
@@ -198,7 +199,17 @@ function DogSheet({ draft, isNew, onClose }: { draft: Omit<Dog, 'updatedAt'>; is
   };
   return (
     <Sheet title={isNew ? t('addDog') : t('editDog')} onClose={onClose}>
-      <div class="row gap"><Avatar dog={d} size={52} /><Field label={t('dogName')}><input type="text" value={d.name} onInput={(e) => set('name', (e.target as HTMLInputElement).value)} /></Field></div>
+      <div class="row gap"><Avatar dog={d} size={64} /><Field label={t('dogName')}><input type="text" value={d.name} onInput={(e) => set('name', (e.target as HTMLInputElement).value)} /></Field></div>
+      <div class="row gap wrap">
+        <label class="btn small-btn">{d.photo ? t('changePhoto') : t('addPhoto')}
+          <input type="file" accept="image/*" hidden onChange={(e) => {
+            const f = (e.target as HTMLInputElement).files?.[0];
+            (e.target as HTMLInputElement).value = '';
+            if (f) void toAvatar(f).then((p) => set('photo', p)).catch(() => showToast(t('err.photo')));
+          }} />
+        </label>
+        {d.photo && <button class="btn small-btn danger" onClick={() => set('photo', undefined)}>{t('removePhoto')}</button>}
+      </div>
       {isNew && <div class="chips">{SPECIES.map((s) => <Chip key={s} on={sp === s} onClick={() => chooseSpecies(s)}>{SPECIES_EMOJI[s][0]} {t(`species.${s}`)}</Chip>)}</div>}
       <div class="chips">{SPECIES_EMOJI[sp].map((e) => <Chip key={e} on={d.emoji === e} onClick={() => set('emoji', e)}>{e}</Chip>)}</div>
       {isNew && (

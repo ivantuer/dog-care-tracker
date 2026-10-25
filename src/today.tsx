@@ -17,7 +17,7 @@ export function DogFilter() {
     <div class="chips scroll-x">
       <Chip on={settings.dogFilter === 'all'} onClick={() => patchSettings({ dogFilter: 'all' })}>{t('all')}</Chip>
       {dogs.map((d) => (
-        <Chip key={d.id} on={settings.dogFilter === d.id} onClick={() => patchSettings({ dogFilter: d.id })}>{d.emoji} {d.name}</Chip>
+        <Chip key={d.id} on={settings.dogFilter === d.id} onClick={() => patchSettings({ dogFilter: d.id })}>{d.photo ? <Avatar dog={d} size={22} /> : d.emoji} {d.name}</Chip>
       ))}
     </div>
   );

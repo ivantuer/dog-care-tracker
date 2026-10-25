@@ -53,8 +53,10 @@ export function Sheet({ title, onClose, children }: { title: string; onClose: ()
 
 // ---- small pieces ----------------------------------------------------------------------------------------
 
-export const Avatar = ({ dog, size = 36 }: { dog: Pick<Dog, 'emoji' | 'color'>; size?: number }) => (
-  <span class="avatar" style={{ width: `${size}px`, height: `${size}px`, fontSize: `${size * 0.55}px`, background: `color-mix(in srgb, ${dog.color} 28%, transparent)`, borderColor: dog.color }}>{dog.emoji}</span>
+export const Avatar = ({ dog, size = 36 }: { dog: Pick<Dog, 'emoji' | 'color' | 'photo'>; size?: number }) => (
+  <span class="avatar" style={{ width: `${size}px`, height: `${size}px`, fontSize: `${size * 0.55}px`, background: `color-mix(in srgb, ${dog.color} 28%, transparent)`, borderColor: dog.color }}>
+    {dog.photo ? <img src={dog.photo} alt="" /> : dog.emoji}
+  </span>
 );
 
 export const Badge = ({ emoji, color, size = 44 }: { emoji: string; color: string; size?: number }) => (
