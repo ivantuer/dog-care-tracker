@@ -133,3 +133,4 @@ textarea { resize: vertical; }
 .pick { opacity: .6; } .pick.on { opacity: 1; border-color: var(--accent); }
 .tick { width: 26px; height: 26px; border-radius: 50%; border: 2px solid var(--ring); display: grid; place-items: center; font-weight: 700; color: var(--on-accent); margin-right: 4px; } .pick.on .tick { background: var(--accent); border-color: var(--accent); }
 .join { background: var(--glass); border: 1px solid var(--ring); border-radius: var(--radius); padding: 14px; } .join summary { cursor: pointer; font-weight: 600; } .join[open] { display: grid; gap: 12px; }
+.recent { width: 100%; border: 0; background: var(--field); border-radius: 10px; padding: 10px 12px; text-align: left; }

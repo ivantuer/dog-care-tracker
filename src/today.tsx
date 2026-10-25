@@ -2,9 +2,11 @@ import { useState } from 'preact/hooks';
 import { allItems, type Item, type Status } from './care';
 import { localDate } from './dates';
 import { nameOf, agoText, dueText, everyLabel, fmtDay, fmtLongDay } from './format';
+import { LogSheet } from './history';
 import { t } from './i18n';
 import { logCare, patchSettings, removeLog, state } from './store';
 import { sync, vault } from './sync';
+import type { Log } from './types';
 import { Avatar, Badge, Chip, Empty, Field, Sheet, showToast } from './ui';
 
 export function DogFilter() {
@@ -100,6 +102,7 @@ function ItemSheet({ i, onClose }: { i: Item; onClose: () => void }) {
   const [day, setDay] = useState(today);
   const [note, setNote] = useState('');
   const [next, setNext] = useState('');
+  const [editing, setEditing] = useState<Log | null>(null);
   const recent = state.value.logs.filter((l) => l.taskId === i.task.id && l.dogId === i.dog.id).sort((a, b) => b.at.localeCompare(a.at)).slice(0, 5);
 
   const submit = (skipped: boolean) => {
@@ -109,6 +112,7 @@ function ItemSheet({ i, onClose }: { i: Item; onClose: () => void }) {
   };
 
   return (
+    <>
     <Sheet title={`${nameOf(i.task)} · ${i.dog.name}`} onClose={onClose}>
       <div class="row gap">
         <Badge emoji={i.task.emoji} color={i.task.color} size={52} />
@@ -132,14 +136,19 @@ function ItemSheet({ i, onClose }: { i: Item; onClose: () => void }) {
           <h2 class="sec">{t('recent')}</h2>
           <ul class="plain">
             {recent.map((l) => (
-              <li key={l.id} class="row between small">
-                <span>{fmtDay(localDate(new Date(l.at)), true)}{l.skipped ? ` · ${t('skipped')}` : ''}{l.note ? ` · ${l.note}` : ''}</span>
-                <span class="muted">{l.by}</span>
+              <li key={l.id}>
+                <button class="row between small recent" onClick={() => setEditing(l)}>
+                  <span>{fmtDay(localDate(new Date(l.at)), true)}{l.skipped ? ` · ${t('skipped')}` : ''}{l.note ? ` · ${l.note}` : ''}</span>
+                  <span class="muted">{l.by} ✎</span>
+                </button>
               </li>
             ))}
           </ul>
+          <p class="muted small">{t('editEntryHint')}</p>
         </>
       )}
     </Sheet>
+    {editing && <LogSheet log={editing} onClose={() => setEditing(null)} />}
+    </>
   );
 }

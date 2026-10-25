@@ -52,7 +52,7 @@ export function History() {
   );
 }
 
-function LogSheet({ log, onClose }: { log: Log; onClose: () => void }) {
+export function LogSheet({ log, onClose }: { log: Log; onClose: () => void }) {
   const today = localDate();
   const [day, setDay] = useState(localDate(new Date(log.at)));
   const [note, setNote] = useState(log.note ?? '');
