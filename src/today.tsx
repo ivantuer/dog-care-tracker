@@ -2,6 +2,7 @@ import { useState } from 'preact/hooks';
 import { allItems, type Item, type Status } from './care';
 import { localDate } from './dates';
 import { nameOf, agoText, dueText, everyLabel, fmtDay, fmtLongDay } from './format';
+import { DatePicker } from './datepicker';
 import { LogSheet } from './history';
 import { t } from './i18n';
 import { logCare, patchSettings, removeLog, state } from './store';
@@ -123,8 +124,8 @@ function ItemSheet({ i, onClose }: { i: Item; onClose: () => void }) {
       </div>
       {i.task.notes && <p class="note">{i.task.notes}</p>}
       <div class="grid2">
-        <Field label={t('doneOn')}><input type="date" value={day} max={today} onInput={(e) => setDay((e.target as HTMLInputElement).value || today)} /></Field>
-        <Field label={t('nextDue')} hint={t('nextDueHint')}><input type="date" value={next} min={today} onInput={(e) => setNext((e.target as HTMLInputElement).value)} /></Field>
+        <Field label={t('doneOn')}><DatePicker value={day} max={today} onChange={(v) => setDay(v || today)} /></Field>
+        <Field label={t('nextDue')} hint={t('nextDueHint')}><DatePicker value={next} min={today} clearable onChange={setNext} /></Field>
       </div>
       <Field label={t('note')}><input type="text" value={note} placeholder={t('notePlaceholder')} onInput={(e) => setNote((e.target as HTMLInputElement).value)} /></Field>
       <div class="row gap">

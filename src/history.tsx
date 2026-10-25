@@ -1,4 +1,5 @@
 import { useState } from 'preact/hooks';
+import { DatePicker } from './datepicker';
 import { localDate } from './dates';
 import { fmtLongDay, nameOf, timeOf } from './format';
 import { t } from './i18n';
@@ -69,10 +70,10 @@ export function LogSheet({ log, onClose }: { log: Log; onClose: () => void }) {
   return (
     <Sheet title={task ? nameOf(task) : ''} onClose={onClose}>
       <div class="grid2">
-        <Field label={t('doneOn')}><input type="date" value={day} max={today} onInput={(e) => setDay((e.target as HTMLInputElement).value || day)} /></Field>
+        <Field label={t('doneOn')}><DatePicker value={day} max={today} onChange={(v) => setDay(v || day)} /></Field>
         <Field label={t('doneBy')}><input type="text" value={by} onInput={(e) => setBy((e.target as HTMLInputElement).value)} /></Field>
       </div>
-      <Field label={t('nextDue')} hint={t('nextDueHint')}><input type="date" value={next} onInput={(e) => setNext((e.target as HTMLInputElement).value)} /></Field>
+      <Field label={t('nextDue')} hint={t('nextDueHint')}><DatePicker value={next} clearable onChange={setNext} /></Field>
       <Field label={t('note')}><input type="text" value={note} onInput={(e) => setNote((e.target as HTMLInputElement).value)} /></Field>
       <div class="row gap">
         <button class="btn primary grow" onClick={save}>{t('save')}</button>

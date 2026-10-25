@@ -1,4 +1,5 @@
 import { useState } from 'preact/hooks';
+import { DatePicker } from './datepicker';
 import { everyLabel, monthName, nameOf } from './format';
 import { t } from './i18n';
 import { COLORS, PRESETS, TASK_EMOJI } from './presets';
@@ -119,7 +120,7 @@ function TaskSheet({ draft, isNew, onClose }: { draft: Draft; isNew: boolean; on
       </Field>
 
       <div class="grid2">
-        <Field label={t('firstDue')} hint={t('firstDueHint')}><input type="date" value={d.startDate ?? ''} onInput={(e) => set('startDate', (e.target as HTMLInputElement).value || undefined)} /></Field>
+        <Field label={t('firstDue')} hint={t('firstDueHint')}><DatePicker value={d.startDate ?? ''} clearable onChange={(v) => set('startDate', v || undefined)} /></Field>
         <Field label={t('paused')}>
           <label class="switch"><input type="checkbox" checked={!!d.archived} onChange={(e) => set('archived', (e.target as HTMLInputElement).checked || undefined)} /><span /></label>
         </Field>

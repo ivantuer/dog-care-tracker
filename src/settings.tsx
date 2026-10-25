@@ -1,6 +1,7 @@
 import { useState } from 'preact/hooks';
 import { allItems } from './care';
 import { localDate } from './dates';
+import { DatePicker } from './datepicker';
 import { fmtDay } from './format';
 import { t } from './i18n';
 import { buildIcs, download } from './ics';
@@ -198,7 +199,7 @@ function DogSheet({ draft, isNew, onClose }: { draft: Omit<Dog, 'updatedAt'>; is
       <div class="swatches">{COLORS.map((c) => <button key={c} class={`sw${d.color === c ? ' on' : ''}`} style={{ background: c }} aria-label={c} onClick={() => set('color', c)} />)}</div>
       <div class="grid2">
         <Field label={t('breed')}><input type="text" value={d.breed ?? ''} onInput={(e) => set('breed', (e.target as HTMLInputElement).value || undefined)} /></Field>
-        <Field label={t('birthday')}><input type="date" value={d.birthday ?? ''} max={localDate()} onInput={(e) => set('birthday', (e.target as HTMLInputElement).value || undefined)} /></Field>
+        <Field label={t('birthday')}><DatePicker value={d.birthday ?? ''} max={localDate()} clearable onChange={(v) => set('birthday', v || undefined)} /></Field>
       </div>
       <div class="row gap">
         <button class="btn primary grow" disabled={!d.name.trim()} onClick={() => { saveDog({ ...d, name: d.name.trim() }); onClose(); }}>{t('save')}</button>
