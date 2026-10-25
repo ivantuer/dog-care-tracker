@@ -8,6 +8,11 @@ compatibility_date = "2025-09-01"
 name = "VAULT"
 class_name = "Vault"
 
+# Full-size pet photos. Files are encrypted on the phone before upload; the bucket only ever holds ciphertext.
+[[r2_buckets]]
+binding = "PHOTOS"
+bucket_name = "dogcare-photos"
+
 [[migrations]]
 tag = "v1"
 new_sqlite_classes = ["Vault"]

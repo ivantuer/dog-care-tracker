@@ -1,4 +1,4 @@
-import { useState } from 'preact/hooks';
+import { useEffect, useState } from 'preact/hooks';
 import { allItems } from './care';
 import { localDate } from './dates';
 import { DatePicker } from './datepicker';
@@ -10,7 +10,8 @@ import { disablePush, enableLocalOnly, enablePush, isIos, pushSupported, schedul
 import { exportJson, importJson, patchSettings, removeDog, saveDog, saveTask, sharedData, state, taskFromPreset, uid } from './store';
 import { createHousehold, joinHousehold, leaveHousehold, newInviteLink, serverUrl, sync, syncNow, vault } from './sync';
 import type { Dog, Lang, Species } from './types';
-import { toAvatar } from './photo';
+import { cachePhoto, fullPhotoUrl, storeFullPhoto, toAvatar, toFull } from './photo';
+import { newPhotoId } from './sync-core';
 import { Avatar, Chip, Field, Sheet, showToast } from './ui';
 
 export function Settings() {
@@ -187,28 +188,53 @@ function DogSheet({ draft, isNew, onClose }: { draft: Omit<Dog, 'updatedAt'>; is
   const [d, setD] = useState(draft);
   const set = <K extends keyof typeof d>(k: K, v: (typeof d)[K]) => setD((x) => ({ ...x, [k]: v }));
   const sp: Species = d.species ?? 'dog';
+  const [full, setFull] = useState<Blob | undefined>();
+  const [newId, setNewId] = useState<string | undefined>();
+  const [viewing, setViewing] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const pick = async (f: File) => {
+    try {
+      const [thumb, big] = await Promise.all([toAvatar(f), toFull(f)]);
+      const id = newPhotoId();
+      await cachePhoto(id, big);
+      setFull(big); setNewId(id);
+      setD((x) => ({ ...x, photo: thumb, photoId: id }));
+    } catch { showToast(t('err.photo')); }
+  };
   // A new kind of animal starts with its standard routines unless something already covers it.
   const covered = state.value.tasks.some((x) => !x.archived && (x.species ?? 'dog') === sp && !x.dogIds.length);
   const [seed, setSeed] = useState<boolean | null>(null);
   const seeding = isNew && (seed ?? !covered);
   const chooseSpecies = (s: Species) => { setD((x) => ({ ...x, species: s, emoji: SPECIES_EMOJI[s][0] })); setSeed(null); };
-  const save = () => {
-    saveDog({ ...d, species: sp, name: d.name.trim() });
+  const save = async () => {
+    setBusy(true);
+    // The picture goes up first, so the other phone never sees a photo id that has nothing behind it.
+    const original = state.value.dogs.find((x) => x.id === d.id);
+    let photoId = d.photoId;
+    try {
+      await storeFullPhoto(newId, full, original?.photoId !== d.photoId ? original?.photoId : undefined);
+    } catch (e) {
+      showToast(t('err.photoUpload'));
+      if (newId) photoId = undefined;
+    }
+    if (photoId && !vault.value) photoId = original?.photoId === photoId ? photoId : undefined;
+    setBusy(false);
+    saveDog({ ...d, photoId, species: sp, name: d.name.trim() });
     if (seeding) for (const p of presetsFor(sp)) if (p.common.includes(sp)) saveTask(taskFromPreset(p.key, t(`preset.${p.key}`), sp));
     onClose();
   };
   return (
     <Sheet title={isNew ? t('addDog') : t('editDog')} onClose={onClose}>
-      <div class="row gap"><Avatar dog={d} size={64} /><Field label={t('dogName')}><input type="text" value={d.name} onInput={(e) => set('name', (e.target as HTMLInputElement).value)} /></Field></div>
+      <div class="row gap"><button type="button" class="avatar-btn" aria-label={t('viewPhoto')} disabled={!d.photoId} onClick={() => setViewing(true)}><Avatar dog={d} size={64} /></button><Field label={t('dogName')}><input type="text" value={d.name} onInput={(e) => set('name', (e.target as HTMLInputElement).value)} /></Field></div>
       <div class="row gap wrap">
         <label class="btn small-btn">{d.photo ? t('changePhoto') : t('addPhoto')}
           <input type="file" accept="image/*" hidden onChange={(e) => {
             const f = (e.target as HTMLInputElement).files?.[0];
             (e.target as HTMLInputElement).value = '';
-            if (f) void toAvatar(f).then((p) => set('photo', p)).catch(() => showToast(t('err.photo')));
+            if (f) void pick(f);
           }} />
         </label>
-        {d.photo && <button class="btn small-btn danger" onClick={() => set('photo', undefined)}>{t('removePhoto')}</button>}
+        {d.photo && <button class="btn small-btn danger" onClick={() => { setD((x) => ({ ...x, photo: undefined, photoId: undefined })); setFull(undefined); setNewId(undefined); }}>{t('removePhoto')}</button>}
       </div>
       {isNew && <div class="chips">{SPECIES.map((s) => <Chip key={s} on={sp === s} onClick={() => chooseSpecies(s)}>{SPECIES_EMOJI[s][0]} {t(`species.${s}`)}</Chip>)}</div>}
       <div class="chips">{SPECIES_EMOJI[sp].map((e) => <Chip key={e} on={d.emoji === e} onClick={() => set('emoji', e)}>{e}</Chip>)}</div>
@@ -224,9 +250,10 @@ function DogSheet({ draft, isNew, onClose }: { draft: Omit<Dog, 'updatedAt'>; is
         <Field label={t('birthday')}><DatePicker value={d.birthday ?? ''} max={localDate()} clearable onChange={(v) => set('birthday', v || undefined)} /></Field>
       </div>
       <div class="row gap">
-        <button class="btn primary grow" disabled={!d.name.trim()} onClick={save}>{t('save')}</button>
+        <button class="btn primary grow" disabled={!d.name.trim() || busy} onClick={() => void save()}>{t('save')}</button>
         {!isNew && <button class="btn danger" onClick={() => confirm(t('deleteDogConfirm', { name: d.name })) && (removeDog(d.id), onClose())}>{t('delete')}</button>}
       </div>
+      {viewing && d.photoId && <PhotoViewer id={d.photoId} thumb={d.photo} onClose={() => setViewing(false)} />}
     </Sheet>
   );
 }
@@ -248,5 +275,23 @@ function InviteSheet({ link, onClose }: { link: string; onClose: () => void }) {
         {mobile() && 'share' in navigator && <button class="btn" onClick={share}>{t('shareLink')}</button>}
       </div>
     </Sheet>
+  );
+}
+
+/** The full-size picture on a dark backdrop. Shows the thumbnail while the real one loads, and keeps it if the real one is unavailable. */
+function PhotoViewer({ id, thumb, onClose }: { id: string; thumb?: string; onClose: () => void }) {
+  const [url, setUrl] = useState<string | null>(null);
+  const [failed, setFailed] = useState(false);
+  useEffect(() => {
+    let made: string | null = null;
+    void fullPhotoUrl(id).then((u) => { made = u; if (u) setUrl(u); else setFailed(true); });
+    return () => { if (made) URL.revokeObjectURL(made); };
+  }, [id]);
+  return (
+    <div class="viewer" onClick={(e) => { e.preventDefault(); e.stopPropagation(); onClose(); }}>
+      <img src={url ?? thumb} alt="" class={url ? '' : 'blurred'} />
+      {failed && <p class="small">{t('photoUnavailable')}</p>}
+      <button class="icon-btn" aria-label={t('close')}>✕</button>
+    </div>
   );
 }

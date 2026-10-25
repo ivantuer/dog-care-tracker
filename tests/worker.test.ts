@@ -1,7 +1,7 @@
 // Two phones against a running sync server: `cd worker && npx wrangler dev --local`, then
 // SYNC_URL=http://localhost:8787 npm test
 import { describe, expect, it } from 'vitest';
-import { createInvite, liveProtocols, liveUrl, mergeData, newVault, pull, push, redeemInvite, syncOnce } from '../src/sync-core';
+import { deletePhoto, downloadPhoto, newPhotoId, uploadPhoto, createInvite, liveProtocols, liveUrl, mergeData, newVault, pull, push, redeemInvite, syncOnce } from '../src/sync-core';
 import { data, dog, log, task } from './helpers';
 
 const URL_ = process.env.SYNC_URL;
@@ -50,5 +50,28 @@ d('sync server', () => {
     const bad = new WebSocket(liveUrl(vault), liveProtocols(stranger));
     const closed = await new Promise<boolean>((res) => { bad.onopen = () => res(false); bad.onerror = () => res(true); bad.onclose = () => res(true); });
     expect(closed).toBe(true);
+  });
+
+  it('stores photos encrypted, only for the household, and removes them', async () => {
+    const vault = newVault(URL_!);
+    await syncOnce(vault, data({ dogs: [dog('rex')] }));
+    const id = newPhotoId();
+    const bytes = new Uint8Array(5000).map((_, i) => i % 251);
+    await uploadPhoto(vault, id, bytes);
+
+    expect(await downloadPhoto(vault, id)).toEqual(bytes);
+
+    // What the server holds is ciphertext, not the picture.
+    const raw = new Uint8Array(await (await fetch(`${vault.url}${vault.path}/photo/${id}`, { headers: { Authorization: `Bearer ${vault.bearer}` } })).arrayBuffer());
+    expect(raw.length).toBe(bytes.length + 12 + 16);
+    expect(raw.slice(12, 40)).not.toEqual(bytes.slice(0, 28));
+
+    const stranger = { ...newVault(URL_!), path: vault.path };
+    await expect(downloadPhoto(stranger, id)).rejects.toThrow(/does not accept/);
+    await expect(downloadPhoto({ ...newVault(URL_!), path: `/v/${'a'.repeat(32)}` }, id)).resolves.toBeNull();
+    await expect(uploadPhoto(vault, newPhotoId(), new Uint8Array(3_100_000))).rejects.toThrow('too large');
+
+    await deletePhoto(vault, id);
+    expect(await downloadPhoto(vault, id)).toBeNull();
   });
 });

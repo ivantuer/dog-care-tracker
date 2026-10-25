@@ -88,6 +88,49 @@ export function canon(d: SyncData): string {
   return JSON.stringify({ d: sortBy(d.dogs), t: sortBy(d.tasks), l: sortBy(d.logs), x: Object.entries(d.tombstones).sort() });
 }
 
+// ---- photos ----------------------------------------------------------------------------------------------
+// Full-size photos are encrypted with the household key on the phone (12-byte IV, then ciphertext) before they are uploaded.
+
+export async function encryptBytes(v: Vault, bytes: Uint8Array): Promise<Uint8Array> {
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const ct = new Uint8Array(await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, await aes(v.key), bytes as BufferSource));
+  const out = new Uint8Array(12 + ct.length);
+  out.set(iv);
+  out.set(ct, 12);
+  return out;
+}
+
+export async function decryptBytes(v: Vault, data: Uint8Array): Promise<Uint8Array> {
+  try {
+    return new Uint8Array(await crypto.subtle.decrypt({ name: 'AES-GCM', iv: data.slice(0, 12) }, await aes(v.key), data.slice(12)));
+  } catch {
+    throw new Error('Could not decrypt the photo');
+  }
+}
+
+export const newPhotoId = () => hex(crypto.getRandomValues(new Uint8Array(16)));
+
+export async function uploadPhoto(v: Vault, id: string, bytes: Uint8Array): Promise<void> {
+  const res = await fetch(`${v.url}${v.path}/photo/${id}`, { method: 'PUT', headers: { Authorization: `Bearer ${v.bearer}` }, body: (await encryptBytes(v, bytes)) as BodyInit });
+  if (res.status === 401) throw denied();
+  if (res.status === 413) throw new Error('too large');
+  if (res.status === 403) throw new Error('too many photos');
+  if (!res.ok) throw new Error(`Sync server error ${res.status}`);
+}
+
+/** The decrypted photo, or null if the server does not have it. */
+export async function downloadPhoto(v: Vault, id: string): Promise<Uint8Array | null> {
+  const res = await fetch(`${v.url}${v.path}/photo/${id}`, { headers: { Authorization: `Bearer ${v.bearer}` } });
+  if (res.status === 404) return null;
+  if (res.status === 401) throw denied();
+  if (!res.ok) throw new Error(`Sync server error ${res.status}`);
+  return decryptBytes(v, new Uint8Array(await res.arrayBuffer()));
+}
+
+export async function deletePhoto(v: Vault, id: string): Promise<void> {
+  await fetch(`${v.url}${v.path}/photo/${id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${v.bearer}` } }).catch(() => {});
+}
+
 // ---- invites ---------------------------------------------------------------------------------------------
 // An invite link works once. The household credentials are sealed under a random key that lives only in the link's #
 // part; the server holds the sealed copy and hands it out to the first person who asks, then forgets it.

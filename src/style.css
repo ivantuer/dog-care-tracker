@@ -152,3 +152,7 @@ textarea { resize: vertical; }
 .cal-title::first-letter { text-transform: uppercase; }
 .avatar { overflow: hidden; } .avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .chip .avatar { vertical-align: middle; margin-right: 4px; }
+.avatar-btn { border: 0; background: none; padding: 0; flex: none; border-radius: 50%; } .avatar-btn:disabled { cursor: default; }
+.viewer { position: fixed; inset: 0; z-index: 50; background: rgba(0,0,0,.92); display: grid; place-items: center; align-content: center; gap: 10px; padding: 16px; color: #fff; }
+.viewer img { max-width: 100%; max-height: 82vh; border-radius: 14px; object-fit: contain; } .viewer img.blurred { filter: blur(6px); }
+.viewer .icon-btn { position: absolute; top: calc(env(safe-area-inset-top) + 14px); right: 14px; background: rgba(255,255,255,.18); color: #fff; }

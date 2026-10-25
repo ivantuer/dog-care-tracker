@@ -9,6 +9,8 @@ export interface Dog {
   name: string;
   /** Small square JPEG as a data URL; travels with the encrypted household data. */
   photo?: string;
+  /** Id of the full-size photo in the encrypted photo store; `photo` stays as the instant-loading thumbnail. */
+  photoId?: string;
   emoji: string;
   color: string;
   breed?: string;
