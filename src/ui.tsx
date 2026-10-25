@@ -1,6 +1,6 @@
 import { signal } from '@preact/signals';
 import type { ComponentChildren } from 'preact';
-import { useEffect } from 'preact/hooks';
+import { useEffect, useState } from 'preact/hooks';
 import { t } from './i18n';
 import type { Dog } from './types';
 
@@ -85,5 +85,22 @@ export function Empty({ emoji, title, text, children }: { emoji: string; title: 
       {text && <p class="muted">{text}</p>}
       {children}
     </div>
+  );
+}
+
+/** A whole-number field you can clear and retype: the typed text is kept as is, and the number is only taken when valid. */
+export function NumInput({ value, min, max, onChange }: { value: number; min: number; max: number; onChange: (n: number) => void }) {
+  const [text, setText] = useState(String(value));
+  return (
+    <input
+      type="text" inputMode="numeric" pattern="[0-9]*" value={text}
+      onInput={(e) => {
+        const v = (e.target as HTMLInputElement).value.replace(/\D/g, '');
+        setText(v);
+        const n = Number(v);
+        if (v !== '' && n >= min && n <= max) onChange(n);
+      }}
+      onBlur={() => setText(String(value))}
+    />
   );
 }

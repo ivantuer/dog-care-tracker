@@ -6,7 +6,7 @@ import { COLORS, PRESETS, SPECIES, SPECIES_EMOJI, TASK_EMOJI } from './presets';
 import { nextOrder, removeTask, saveTask, state, taskFromPreset, uid } from './store';
 import { speciesOf } from './care';
 import type { Species, Task, Unit } from './types';
-import { Badge, Chip, Empty, Field, Sheet } from './ui';
+import { Badge, Chip, Empty, Field, NumInput, Sheet } from './ui';
 
 const UNITS: Unit[] = ['day', 'week', 'month', 'year'];
 
@@ -98,14 +98,14 @@ function TaskSheet({ draft, isNew, onClose }: { draft: Draft; isNew: boolean; on
       <div class="grid2">
         <Field label={t('repeatEvery')}>
           <div class="row gap">
-            <input type="number" min="1" max="999" inputMode="numeric" value={d.every} onInput={(e) => set('every', Math.max(1, Math.floor(Number((e.target as HTMLInputElement).value) || 1)))} />
+            <NumInput value={d.every} min={1} max={999} onChange={(n) => set('every', n)} />
             <select value={d.unit} onChange={(e) => set('unit', (e.target as HTMLSelectElement).value as Unit)}>
               {UNITS.map((u) => <option key={u} value={u}>{t(`units.${u}`)}</option>)}
             </select>
           </div>
         </Field>
         <Field label={t('remindDays')} hint={t('remindDaysHint')}>
-          <input type="number" min="0" max="365" inputMode="numeric" value={d.lead} onInput={(e) => set('lead', Math.max(0, Math.floor(Number((e.target as HTMLInputElement).value) || 0)))} />
+          <NumInput value={d.lead} min={0} max={365} onChange={(n) => set('lead', n)} />
         </Field>
       </div>
 

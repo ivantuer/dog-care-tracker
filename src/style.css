@@ -100,7 +100,7 @@ input[type=text], input[type=url], input[type=number], input[type=date], select,
 input:focus, select:focus, textarea:focus { border-color: var(--accent); }
 input[type=date] { min-height: 46px; }
 textarea { resize: vertical; }
-.row.gap > input[type=number] { width: 90px; flex: none; }
+.row.gap > input[type=text]:first-child { width: 90px; flex: none; }
 .btn { display: inline-flex; justify-content: center; align-items: center; gap: 6px; border: 1px solid var(--ring); background: var(--field); border-radius: 14px; padding: 12px 18px; font-weight: 650; text-align: center; }
 .btn.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
 .btn.danger { color: var(--bad); }
