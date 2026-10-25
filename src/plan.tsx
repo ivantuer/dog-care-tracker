@@ -34,7 +34,7 @@ export function Plan() {
       </div>
       {!tasks.length && <Empty emoji="📋" title={t('noTasks')} text={t('noTasksText')} />}
       {tasks.map((task) => (
-        <button key={task.id} class={`item plain-card${task.archived ? ' archived' : ''}`} onClick={() => setEdit(task)}>
+        <button key={task.id} class={`item plain-card${task.archived ? ' archived' : ''}`} onClick={() => setEdit({ ...task, name: nameOf(task) })}>
           <Badge emoji={task.emoji} color={task.color} />
           <span class="item-text">
             <b>{nameOf(task)}</b>
